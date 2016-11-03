@@ -1,0 +1,80 @@
+#/bin/perl -w
+
+
+my %conf = (
+    VERSION           => "0.4.14",
+    USE_RRDs          => "1",
+    DEBUG_LEVEL       => "0",
+    PERL_LIB_PATH     => ""
+);
+
+if ( $conf{USE_RRDs} == 1 ) {
+    unless ( eval "use RRDs;1" ) {
+        $conf{USE_RRDs} = 0;
+    }
+}
+
+if($conf{USE_RRDs} == 1){
+    $rrds_version = $RRDs::VERSION;
+}
+
+my $RRD_BINARY = "/bin/rrdtool";
+@T = `$RRD_BINARY`;
+@v = split(/ /,$T[0]);
+$rrdtool_version = $v[1];
+$rrdtool_message = "";
+if($rrdtool_version == ""){
+    $rrdtool_message = "WARNING: \"$RRD_BINARY\" does not look like rrdtool";
+}else{
+    $rrdtool_message = "$RRD_BINARY Version $rrdtool_version";
+}
+
+printf ("\n\n");
+printf ("*** Configuration summary for %s %s %s ***","pnp","0.4.14","05-02-2009");
+printf ("\n\n");
+printf ("  General Options:\n");
+printf ("  -------------------------         -------------------\n");
+printf ("  Nagios user/group:                %s %s\n","nagios","nagios");
+printf ("  Install directory:                %s\n","/usr/local/nagios");
+printf ("  HTML Dir:                         %s\n","/usr/local/nagios/share/pnp");
+printf ("  Config Dir:                       %s\n","/usr/local/nagios/etc/pnp");
+printf ("  Location of rrdtool binary:       %s\n",$rrdtool_message);
+printf ("  RRDs Perl Modules:                %s\n","*** NOT FOUND ***")            if($conf{USE_RRDs} == 0);
+printf ("  RRDs Perl Modules:                %s (Version %s)\n","FOUND", $rrds_version)    if($conf{USE_RRDs} == 1);
+printf ("  RRDs Perl search path:            %s\n","")              if($conf{PERL_LIB_PATH} ne "");
+printf ("  RRD Files stored in:              %s\n","/usr/local/nagios/share/perfdata");
+printf ("  process_perfdata.pl Logfile:      %s\n","/usr/local/nagios/var/perfdata.log");
+printf ("  Perfdata files (NPCD) stored in:  %s\n","/usr/local/nagios/var/spool/perfdata/");
+printf ("\n\n"); 
+printf ("  Review the options above for accuracy.  If they look okay,\n");
+printf ("  type 'make all' to compile.\n");
+
+if($conf{USE_RRDs} == 0){
+    print "\n\n";
+    print "  WARNING: The RRDs Perl Modules are not found on your System\n";
+    print "           Using RRDs will speedup things in larger Installtions.\n";
+}
+
+if($ENV{DESTDIR}){
+    print "\n\n";
+    print "  WARNING: \$DESTDIR is set to $ENV{DESTDIR} \n";
+}
+
+if($conf{DEBUG_LEVEL} != 0){
+    printf ("\n\n");
+    printf ("  Found PERL at:                    %s\n","/bin/perl");
+    printf ("  Found SHELL at:                   %s\n","/bin/sh");
+    printf ("  Debug Level:                      %s\n","0");
+    printf ("  Libexecdir:                       %s\n","/usr/local/nagios/libexec");
+    printf ("  localstatedir:                    %s\n","/usr/local/nagios/var");
+    printf ("  libdir:                           %s\n","/usr/local/nagios/lib");
+    printf ("  sysconfdir:                       %s\n","/usr/local/nagios/etc/pnp");
+    printf ("  datarootdir:                      %s\n","/usr/local/nagios/share/pnp");
+    printf ("  sbindir:                          %s\n","/usr/local/nagios/sbin");
+    printf ("  bindir:                           %s\n","/usr/local/nagios/bin");
+    printf ("  System:                           %s\n","linux-gnu");
+}
+
+print "\n\n";
+
+exit 0;

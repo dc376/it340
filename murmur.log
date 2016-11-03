@@ -1,0 +1,35 @@
+<W>2016-11-02 21:34:34.806 Initializing settings from /etc/murmur.ini (basepath /etc)
+<W>2016-11-02 21:34:34.807 Binding to address 0.0.0.0
+<W>2016-11-02 21:34:34.807 OpenSSL: OpenSSL 1.0.0n 6 Aug 2014
+<W>2016-11-02 21:34:34.932 ServerDB: Opened SQLite database /home/murmur/murmur.sqlite
+<W>2016-11-02 21:34:34.944 OSInfo: Failed to execute lsb_release
+<W>2016-11-02 21:34:34.945 Murmur 1.2.8 (1.2.8) running on X11: Linux 3.10.0-327.el7.x86_64: Booting servers
+<W>2016-11-02 21:34:35.037 1 => Server listening on 0.0.0.0:64738
+<W>2016-11-02 21:34:35.123 1 => Failed to set IPV6_RECVPKTINFO for 0.0.0.0:64738
+<W>2016-11-02 21:34:35.282 1 => Announcing server via bonjour
+<W>2016-11-02 21:34:35.293 Object::connect: No such slot MurmurDBus::userTextMessage(const User *, const TextMessage &)
+<W>2016-11-02 21:36:40.769 1 => Registration: Source-based callback failed. Server not reachable.
+<W>2016-11-02 22:41:09.549 1 => Registration: Source-based callback failed. Server not reachable.
+<W>2016-11-02 23:44:26.759 1 => Registration: Source-based callback failed. Server not reachable.
+<W>2016-11-03 00:18:00.262 Initializing settings from /etc/murmur.ini (basepath /etc)
+<W>2016-11-03 00:18:00.262 Binding to address 0.0.0.0
+<W>2016-11-03 00:18:00.262 OpenSSL: OpenSSL 1.0.0n 6 Aug 2014
+<W>2016-11-03 00:18:00.498 ServerDB: Opened SQLite database /home/murmur/murmur.sqlite
+<W>2016-11-03 00:18:00.509 OSInfo: Failed to execute lsb_release
+<W>2016-11-03 00:18:00.509 Murmur 1.2.8 (1.2.8) running on X11: Linux 3.10.0-327.el7.x86_64: Booting servers
+<W>2016-11-03 00:18:00.681 1 => Server listening on 0.0.0.0:64738
+<W>2016-11-03 00:18:00.749 1 => Failed to set IPV6_RECVPKTINFO for 0.0.0.0:64738
+<W>2016-11-03 00:18:01.046 1 => Announcing server via bonjour
+<W>2016-11-03 00:18:01.056 Object::connect: No such slot MurmurDBus::userTextMessage(const User *, const TextMessage &)
+<W>2016-11-03 00:20:52.423 1 => Registration: Source-based callback failed. Server not reachable.
+<W>2016-11-03 12:35:42.576 Initializing settings from /etc/murmur.ini (basepath /etc)
+<W>2016-11-03 12:35:42.576 Binding to address 0.0.0.0
+<W>2016-11-03 12:35:42.577 OpenSSL: OpenSSL 1.0.0n 6 Aug 2014
+<W>2016-11-03 12:35:42.741 ServerDB: Opened SQLite database /home/murmur/murmur.sqlite
+<W>2016-11-03 12:35:42.860 OSInfo: Failed to execute lsb_release
+<W>2016-11-03 12:35:42.860 Murmur 1.2.8 (1.2.8) running on X11: Linux 3.10.0-327.el7.x86_64: Booting servers
+<W>2016-11-03 12:35:42.986 1 => Server listening on 0.0.0.0:64738
+<W>2016-11-03 12:35:43.048 1 => Failed to set IPV6_RECVPKTINFO for 0.0.0.0:64738
+<W>2016-11-03 12:35:43.123 1 => Announcing server via bonjour
+<W>2016-11-03 12:35:43.126 Object::connect: No such slot MurmurDBus::userTextMessage(const User *, const TextMessage &)
+<W>2016-11-03 12:37:07.948 1 => Registration: Source-based callback failed. Server not reachable.

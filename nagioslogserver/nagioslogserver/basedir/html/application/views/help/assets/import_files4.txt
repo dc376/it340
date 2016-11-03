@@ -1,0 +1,1 @@
+cat /var/log/httpd/access_log-20140914 | python shipper.py program:apache_access | nc %hostname% 2057

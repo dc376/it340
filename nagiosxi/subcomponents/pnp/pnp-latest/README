@@ -1,0 +1,19 @@
+#########################
+#			#
+#        README 	#
+#			#
+#########################
+
+See our online documentation at:
+
+http://pnp4nagios.sourceforge.net	or:
+http://www.pnp4nagios.org/pnp/start
+
+In case of problems please read
+   http://www.pnp4nagios.org/pnp/about#support
+especially the mentioned section
+   http://www.pnp4nagios.org/pnp/verify
+Make sure that you have valid performance data
+   http://www.pnp4nagios.org/pnp/about#system_requirements
+and try to run the verify script
+   http://www.pnp4nagios.org/pnp/verify_pnp_config

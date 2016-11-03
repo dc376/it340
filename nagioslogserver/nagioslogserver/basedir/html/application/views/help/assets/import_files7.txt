@@ -1,0 +1,1 @@
+python shipper.py -a archive.tar.bz2 -p 'access_log*' program:apache_access | nc %hostname% 2057

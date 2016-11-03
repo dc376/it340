@@ -1,0 +1,112 @@
+{
+    "name": "Apache 404 Errors",
+    "raw": "{
+        \"query\": {
+            \"filtered\": {
+                \"query\": {
+                    \"bool\": {
+                        \"should\": [
+                            {
+                                \"query_string\": {
+                                    \"query\": \"*\"
+                                }
+                            }
+                        ]
+                    }
+                },
+                \"filter\": {
+                    \"bool\": {
+                        \"must\": [
+                            {
+                                \"range\": {
+                                    \"@timestamp\": {
+                                        \"from\": 1412793046809,
+                                        \"to\": 1412879446809
+                                    }
+                                }
+                            },
+                            {
+                                \"fquery\": {
+                                    \"query\": {
+                                        \"query_string\": {
+                                            \"query\": \"_type: (\\\"apache_access\\\")\"
+                                        }
+                                    },
+                                    \"_cache\": true
+                                }
+                            },
+                            {
+                                \"fquery\": {
+                                    \"query\": {
+                                        \"query_string\": {
+                                            \"query\": \"response: (404)\"
+                                        }
+                                    },
+                                    \"_cache\": true
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }",
+    "services": "{
+        \"query\": {
+            \"list\": {
+                \"0\": {
+                    \"query\": \"*\",
+                    \"alias\": \"\",
+                    \"color\": \"#4D89F9\",
+                    \"id\": 0,
+                    \"pin\": false,
+                    \"type\": \"lucene\",
+                    \"enable\": true
+                }
+            },
+            \"ids\": [
+                0
+            ]
+        },
+        \"filter\": {
+            \"list\": {
+                \"0\": {
+                    \"type\": \"time\",
+                    \"field\": \"@timestamp\",
+                    \"from\": \"now-24h\",
+                    \"to\": \"now\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 0
+                },
+                \"1\": {
+                    \"type\": \"field\",
+                    \"field\": \"_type\",
+                    \"query\": \"\\\"apache_access\\\"\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 1
+                },
+                \"3\": {
+                    \"type\": \"field\",
+                    \"field\": \"response\",
+                    \"query\": \"404\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 3
+                }
+            },
+            \"ids\": [
+                0,
+                1,
+                3
+            ]
+        }
+    }",
+    "created_by": "NAGIOS",
+    "created_id": "system",
+    "show_everyone": 1
+}

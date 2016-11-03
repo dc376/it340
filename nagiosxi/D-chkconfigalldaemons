@@ -1,0 +1,49 @@
+#!/bin/bash -e
+
+. ./xi-sys.cfg
+
+# Was previous step completed?
+if [ ! -f installed.crontabs ]; then
+	echo "Crontabs were not configured - run previous script" >&2
+	exit 1
+fi
+
+# Was this step already completed?
+if [ -f installed.chkconfig ]; then
+	echo "Daemons already configured - skipping."
+	exit 0
+fi
+
+# Special case for CentOS 7 & mariadb
+if [ $ver -eq 7 ] && [ "$distro" != "Debian" ]; then
+
+	# Disable first
+	systemctl disable selinux
+	systemctl disable firewalld
+
+	# Enable in systemctl
+	for svc in nagiosxi nagios npcd ndo2db $ntpd $mysqld crond httpd sshd; do
+		systemctl enable "$svc"
+	done
+
+elif [ "$distro" == "Ubuntu" ] || [ "$distro" == "Debian" ]; then
+
+	for svc in nagiosxi nagios npcd ndo2db $mysqld $httpd $ntpd $crond; do
+		update-rc.d "$svc" defaults
+	done
+
+else
+
+	# For CentOS 5 & 6
+	for svc in  nagios npcd ndo2db $ntpd; do
+		chkconfig --add "$svc"
+	done
+	for svc in nagiosxi nagios npcd ndo2db $mysqld $httpd $ntpd $crond; do
+		chkconfig --level    35 "$svc" on
+		chkconfig --level 01246 "$svc" off
+	done
+
+fi
+
+echo "Daemons configured to start OK"
+touch installed.chkconfig

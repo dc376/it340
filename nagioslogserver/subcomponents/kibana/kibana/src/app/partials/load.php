@@ -1,0 +1,6 @@
+<?php include_once('../setlang.inc.php'); ?>
+
+<div style="margin-top:50px" ng-controller="dashcontrol">
+    <strong>type: </strong>{{type}} <br>
+    <strong>id: </strong>{{id}} <br>
+</div>

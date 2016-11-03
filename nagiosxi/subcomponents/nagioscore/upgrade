@@ -1,0 +1,52 @@
+#!/bin/bash -e
+
+. ../../xi-sys.cfg
+
+pkgname="nagios-4.1.1"
+
+echo "NAGIOSCORE"
+
+# Delete the old directory
+rm -rf "$pkgname"
+rm -rf nagios
+
+# Extract archive
+tar -xzf "$pkgname.tar.gz"
+ln -s nagios "$pkgname"
+
+# Apply our patches
+./apply-patches "$pkgname"
+
+# Make and install Nagios
+(
+	cd "./$pkgname"
+	./configure --with-command-group="$nagioscmdgroup" --disable-embedded-perl
+	make all
+	make install
+	#make install-init
+	#make install-config
+	#make install-commandmode
+)
+
+#comment out deprecated config items
+sed -i 's/^old/#new/g' /usr/local/nagios/etc/nagios.cfg
+sed -i 's/^use_embedded_perl_implicitly/#use_embedded_perl_implicitly/g' /usr/local/nagios/etc/nagios.cfg
+sed -i 's/^sleep_time/#sleep_time/g' /usr/local/nagios/etc/nagios.cfg
+sed -i 's/^p1_file/#p1_file/g' /usr/local/nagios/etc/nagios.cfg
+sed -i 's/^external_command_buffer_slots/#external_command_buffer_slots/g' /usr/local/nagios/etc/nagios.cfg
+sed -i 's/^enable_embedded_perl/#enable_embedded_perl/g' /usr/local/nagios/etc/nagios.cfg
+sed -i 's/^command_check_interval/#command_check_interval/g' /usr/local/nagios/etc/nagios.cfg
+
+# Turn on auto_reschedule_checks 
+sed -i 's/^auto_reschedule_checks=0/auto_reschedule_checks=1/g' /usr/local/nagios/etc/nagios.cfg
+
+# Restart the nagios service
+if [ ! `command -v systemctl` ]; then
+    service nagios restart
+else
+    systemctl restart nagios
+fi
+
+# Post-upgrade modifications
+#./post-upgrade
+

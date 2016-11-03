@@ -1,0 +1,66 @@
+#!/bin/bash -e
+
+. ../../xi-sys.cfg
+
+pkgname="$1"
+
+echo "NDOUTILS POST-UPGRADE..."
+##parse values in case mysql is offloaded 
+ndopass=$(sed -n '/^db_pass=/ s///p' /usr/local/nagios/etc/ndo2db.cfg)
+ndohost=$(sed -n '/^db_host=/ s///p' /usr/local/nagios/etc/ndo2db.cfg)
+ndouser=$(sed -n '/^db_user=/ s///p' /usr/local/nagios/etc/ndo2db.cfg)
+ndoname=$(sed -n '/^db_name=/ s///p' /usr/local/nagios/etc/ndo2db.cfg)
+# Post-install modifications
+
+# New init file
+cp -f mods/ndo2db.init /etc/init.d/ndo2db
+
+# Change some settings in /etc/sysctl.conf, add them if they're not there 
+if [ "`grep kernel.msg /etc/sysctl.conf`" == "" ] ; then
+	echo "kernel.msgmnb = 131072000" >> /etc/sysctl.conf
+	echo "kernel.msgmax = 131072000" >> /etc/sysctl.conf
+	echo "kernel.shmmax = 4294967295" >> /etc/sysctl.conf
+	echo "kernel.shmall = 268435456" >> /etc/sysctl.conf	
+else
+	sed -i 	-e '/^kernel\.msgmnb/ s/.*/kernel.msgmnb = 131072000/' \
+			-e '/^kernel\.msgmax/ s/.*/kernel.msgmax = 131072000/' \
+			-e '/^kernel\.shmmax/ s/.*/kernel.shmmax = 4294967295/' \
+			-e '/^kernel\.shmall/ s/.*/kernel.shmall = 268435456/' \
+			/etc/sysctl.conf
+fi
+
+# Apply settings to sysctl.conf
+sysctl -e -p /etc/sysctl.conf
+
+# Remove old references to failure_prediction_enabled from nagiosql DB when we upgrade to Core 4
+echo "Removing depricated failure_prediction_enabled from NagiosQL"
+echo "delete from tbl_variabledefinition where name='failure_prediction_enabled';"|mysql -h "$cfg__db_info__nagiosql__dbserver" -u "$cfg__db_info__nagiosql__user" -p"$cfg__db_info__nagiosql__pwd" "$cfg__db_info__nagiosql__db"
+
+echo "copying updated mysql-upgrade-2.0.0.sql"
+cp -r mods/mysql-upgrade-2.0.0.sql "$pkgname"/db
+
+# Upgrade the database
+(
+	#Fix for XI as dbversion has not been set for many releases
+	ndoversion=$(mysql "$ndoname" -u "$ndouser" -p"$ndopass" -h "$ndohost" -se "SELECT version FROM nagios_dbversion WHERE name='ndoutils';")
+	if [ "$ndoversion" == "" ];then
+		# set to 1.5.2 if no version is found in DB
+		mysql "$ndoname" -u "$ndouser" -p"$ndopass" -h "$ndohost" -se "INSERT INTO nagios_dbversion(name,version) VALUES('ndoutils','1.5.2');"
+	fi
+	cd ./"$pkgname"/db
+	./upgradedb -u "$ndouser" -p "$ndopass" -h "$ndohost" -d "$ndoname" || true
+)
+
+# Restart ndo2db daemon
+if [ ! `command -v systemctl` ]; then
+    service ndo2db restart
+else
+    systemctl restart ndo2db
+fi
+
+# Restart Nagios Core (to use new ndomod module)
+if [ ! `command -v systemctl` ]; then
+    service nagios restart
+else
+    systemctl restart nagios
+fi

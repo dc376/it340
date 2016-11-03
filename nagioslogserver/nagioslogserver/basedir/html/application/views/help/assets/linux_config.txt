@@ -1,0 +1,18 @@
+$ModLoad imfile
+$InputFilePollInterval 10
+$PrivDropToGroup adm
+$WorkDirectory /path/to/rsyslog/spool
+
+# Input for FILE_PATH
+$InputFileName FILE_PATH
+$InputFileTag FILE_TAG:
+$InputFileStateFile nls-state-FILE_ID # Must be unique for each file being polled
+# Uncomment the folowing line to override the default severity for messages
+# from this file.
+#$InputFileSeverity info
+$InputFilePersistStateInterval 20000
+$InputRunFileMonitor
+
+# Forward to Nagios Logserver and then discard.
+if $programname == 'FILE_TAG' then @@%hostname%:%syslog_port%
+if $programname == 'FILE_TAG' then ~

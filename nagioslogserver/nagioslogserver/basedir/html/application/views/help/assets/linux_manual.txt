@@ -1,0 +1,4 @@
+ls -d /var/lib/rsyslog || ls -d /var/spool/rsyslog || mkdir -v /var/spool/rsyslog
+ls -d /var/lib/rsyslog || ls -d /var/spool/rsyslog
+ls -d /etc/rsyslog.d || mkdir -v /etc/rsyslog.d
+sudo vi /etc/rsyslog.conf

@@ -1,0 +1,250 @@
+#!/bin/sh -e
+
+cd $(dirname $(readlink -e "$0"))
+. ./libinstall.sh
+
+proddir="/var/www/html/nagioslogserver"
+backenddir="/usr/local/nagioslogserver"
+DEVEL="False"
+
+usage() {
+	cat <<-EOF
+
+		Nagios Log Server installer script
+		Copyright 2014, Nagios Enterprises LLC.
+		License:
+			Nagios Software License <http://assets.nagios.com/licenses/nagios_software_license.txt>
+
+		Usage: ./fullinstall [options...]
+
+		Options:
+			-h | --help
+				Display this help text
+			-a | --add_node
+				
+			-m | --master
+				
+			-i | --id
+				
+			-n | --non-interactive
+				Assume defaults for all questions (for scripted installs)
+
+	EOF
+}
+
+
+#####################
+### INSTALL STEPS ###
+#####################
+
+prereqs() {
+	local pkgs
+	pkgs="byacc cairo-devel gcc glib2-devel glibc java-1.7.0-openjdk libxml2-devel make net-snmp net-snmp-utils ntp openssl patch pango-devel perl-ExtUtils-MakeMaker php php-cli pyOpenSSL sendmail sudo sysstat unzip zip net-tools php-ldap"
+	
+    # Currently this is not needed
+    # add_yum_repo "epel"
+
+	# Install prereqs
+	yum -y install $pkgs
+	
+	# Set date/time because ssl certificates can be in the future... (fix for pypi and get-pip)
+	ntpdate -u pool.ntp.org
+	
+    # install pip
+	python get-pip.py
+    
+    # install ES Curator, argparse and jsonselect
+	pip install argparse jsonselect elasticsearch-curator==3.4.0
+    
+	#special case for el5 -> using PHP 5.1 
+	if [ "$dist" == "el5" ]; then
+		yum install -y php-pecl-zip
+	fi
+
+	# Make sure they were installed
+	if ! is_installed $pkgs; then
+		error "Prerequisites failed to install."
+	fi
+}
+
+
+sourceguardian() {
+	#~ install_sourceguardian
+	echo "Installing sourceguardian..."
+    install_sourceguardian
+}
+
+
+timezone() {
+	php_timezone
+}
+
+
+nagioslogserver() {
+
+	# Copy source directory to the system
+	cp -r nagioslogserver/basedir/html/ "$proddir"
+
+	# Set up permissions
+	for dir in application/cache application/config www/media www/scripts application/dashboards; do
+		chgrp -R apache "$proddir/$dir"
+		chmod -R g+rwx  "$proddir/$dir"
+	done
+
+	# Install site-specific config file
+	#cp config.local.php "$proddir/application/config/"
+
+	if [ $DEVEL == "True" ]; then
+		echo -e "\n\n" >> $proddir/application/config/config.local.php
+        echo '$config["dev_mode"] = TRUE;' >> $proddir/application/config/config.local.php
+	fi
+
+	# Generate a random key value for encryption_key
+ 	key=$(openssl rand -hex 32)
+  	sed -i "/\$config\['encryption_key'\]/c\$config['encryption_key'] = '$key';" $proddir/application/config/config.local.php
+	
+	# Add json_encode support for Log Server on PHP 5.2 or older
+	phpversion=$(php -r "print version_compare(PHP_VERSION, '5.2.0');")
+	if [ $phpversion ]; then
+		yum install php-pecl-json -y
+	fi
+
+	# Install Apache config
+	cp nagioslogserver/httpd.nagioslogserver.conf "$httpdconfdir/nagioslogserver.conf"
+	
+	# Add log rotation for logstash
+	cp -r ./nagioslogserver/logrotate.nagioslogserver /etc/logrotate.d/nagioslogserver
+}
+
+
+backend() {
+	# Setup the backend items
+	add_user nagios
+	add_group nagios
+	add_to_groups nagios nagios apache
+	add_to_groups apache nagios
+	
+	mkdir -p "$backenddir/var" "$backenddir/etc" "$backenddir/tmp" "$backenddir/scripts" "$backenddir/snapshots" "$backenddir/mibs"
+	cp -r nagioslogserver/basedir/scripts/* "$backenddir/scripts"
+	cp -r nagioslogserver/basedir/var/* "$backenddir/var"
+	cp -r mibs/* "$backenddir/mibs"
+	
+	chown -R nagios.nagios "$backenddir"
+	chmod -R 0775 "$backenddir"
+	chmod -R 0775 "$backenddir/var"
+	chmod 0554 $backenddir/scripts/*
+	
+	# Install elasticsearch
+	(
+		cd subcomponents/elasticsearch
+		./install
+	)
+	
+	# Install logstash
+	(
+		cd subcomponents/logstash
+		./install
+	)
+	
+	# Install kibana
+	(
+		cd subcomponents/kibana
+		./install
+	)
+	
+	"$backenddir/scripts/generate_uuid.sh" -f "$backenddir/var/node_uuid"
+    
+    #install cron
+    install -m 644 nagioslogserver/nagioslogserver.cron.d /etc/cron.d/nagioslogserver 
+	
+	# Add backup storage area
+	mkdir -p /store/backups/nagioslogserver
+	chown nagios:nagios -R /store
+}
+
+install_mibs() {
+	echo "mibfile /usr/local/nagioslogserver/mibs/NAGIOS-ROOT-MIB.txt" >> /usr/share/snmp/snmp.conf
+	echo "mibfile /usr/local/nagioslogserver/mibs/NAGIOS-NOTIFY-MIB.txt" >> /usr/share/snmp/snmp.conf
+}
+
+firewall() {
+	# Opens default Apache ports and default master port
+	open_tcp_ports 80 443 9300:9400 3515 5544 2056 2057
+	open_udp_ports 5544
+}
+
+
+selinux() {
+	disable_selinux
+}
+
+
+daemons() {
+	rc ntpd "$httpd" elasticsearch
+	sleep 5
+	rc logstash
+}
+
+
+webroot() {
+	# Save old web root page
+	if [ -f /var/www/html/index.html ]; then
+		mv /var/www/html/index.html /var/www/html/index.html.orig
+	fi
+	
+	# Add a webroot if one doesn't exist
+	if [ ! -f /var/www/html/index.php ]; then
+		cp nagioslogserver/index.php /var/www/html/index.php
+	fi
+	
+	if [ "$dist" == "el7" ]; then
+		systemctl enable httpd.service
+	fi
+}
+
+##############################
+### START THE INSTALLATION ###
+##############################
+
+fullinstall() {
+	while [ -n "$1" ]; do
+		case "$1" in
+			-h | --help )
+				usage
+				exit
+				;;
+			-n | --non-interactive )
+				INTERACTIVE="False"
+				;;
+			-d | --devel )
+				DEVEL="True"
+				;;
+			-a | --add_node )
+				ADDING_NODE="true"
+				;;
+			-m | --master )
+				MASTER_IP="$2"
+				shift
+				;;
+			-i | --id )
+				CLUSTER_ID="$2"
+				shift
+				;;
+			* )
+				usage >&2
+				error "invalid command line syntax."
+		esac
+		shift
+	done
+
+	print_header "Nagios Log Server"
+	
+	get_cluster_info
+		
+	run_steps setup_local_syslog prereqs sourceguardian timezone nagioslogserver backend install_mibs sudoers firewall selinux test_cluster_connection daemons webroot
+	print_footer "Nagios Log Server" "nagioslogserver"
+	echo ""
+}
+
+log_it install.log fullinstall "$@"
+exit 0

@@ -1,0 +1,12 @@
+#!/bin/sh -e
+
+# install elasticsearch plugins
+mkdir -p /usr/local/nagioslogserver/elasticsearch/plugins
+
+# Remove previous versons of plugins
+rm -f /usr/local/nagioslogserver/elasticsearch/plugins/knapsack/elasticsearch-knapsack*.jar
+
+cp -rf mods/plugins/* /usr/local/nagioslogserver/elasticsearch/plugins
+
+# copy new logging format (non-rotating) rotating done using logrotate
+cp -r mods/elasticsearch/* /usr/local/nagioslogserver/elasticsearch

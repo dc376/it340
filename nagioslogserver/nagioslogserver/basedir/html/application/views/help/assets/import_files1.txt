@@ -1,0 +1,11 @@
+tcp {
+    type => 'import_raw'
+    tags => 'import_raw'
+    port => 2056
+}
+tcp {
+    type => 'import_json'
+    tags => 'import_json'
+    port => 2057
+    codec => json
+}

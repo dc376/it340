@@ -1,0 +1,28 @@
+<?php include_once('../../setlang.inc.php'); ?>
+
+<div ng-controller='trends' ng-init="init()">
+
+  <style>
+    div.trends-horizontal {
+      display:inline-block;
+      padding-right: 5px;
+    }
+  </style>
+
+  <div ng-class="{'trends-horizontal':panel.arrangement == 'horizontal'}" ng-style="panel.style" style="line-height:{{panel.style['font-size']}};" ng-repeat="query in trends">
+    <i class="icon-circle" style="color:{{query.info.color}}"></i>
+    <span 
+        bs-tooltip="'<?php echo _('Then'); ?>: '+query.hits.old+', <?php echo _('Now'); ?>: '+query.hits.new"  
+        ng-class="
+            {
+                'text-success': (query.hits.new >= query.hits.old && panel.reverse === false) || (query.hits.new < query.hits.old && panel.reverse === true), 
+                'text-error': (query.hits.old > query.hits.new && panel.reverse === false) || (query.hits.old <= query.hits.new && panel.reverse === true)
+            }
+        " 
+        class='pointer strong'
+    >
+      <i class='large' ng-class="{'icon-caret-up': query.hits.new >= query.hits.old, 'icon-caret-down': query.hits.old > query.hits.new}"></i>{{query.percent}}%
+    </span>
+    <span class="tiny light" ng-show="query.info.alias != ''">({{query.info.alias}})</span>
+  </div>
+</div>

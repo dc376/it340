@@ -1,0 +1,8 @@
+if [program] == "mysqld_log" {
+    grok {
+        match => [ "message", "^%{NUMBER:date} *%{NOTSPACE:time}"]
+    }
+    mutate {
+        replace => [ "type", "mysqld_log" ]
+    }
+}

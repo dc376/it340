@@ -1,0 +1,112 @@
+{
+    "name": "Failed SSH Logins",
+    "raw": "{
+        \"query\": {
+            \"filtered\": {
+                \"query\": {
+                    \"bool\": {
+                        \"should\": [
+                            {
+                                \"query_string\": {
+                                    \"query\": \"\\\"Failed password\\\"\"
+                                }
+                            }
+                        ]
+                    }
+                },
+                \"filter\": {
+                    \"bool\": {
+                        \"must\": [
+                            {
+                                \"range\": {
+                                    \"@timestamp\": {
+                                        \"from\": 1412792699892,
+                                        \"to\": 1412879099892
+                                    }
+                                }
+                            },
+                            {
+                                \"fquery\": {
+                                    \"query\": {
+                                        \"query_string\": {
+                                            \"query\": \"_type: (\\\"syslog\\\")\"
+                                        }
+                                    },
+                                    \"_cache\": true
+                                }
+                            },
+                            {
+                                \"fquery\": {
+                                    \"query\": {
+                                        \"query_string\": {
+                                            \"query\": \"program: (\\\"sshd\\\")\"
+                                        }
+                                    },
+                                    \"_cache\": true
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }",
+    "services": "{
+        \"query\": {
+            \"list\": {
+                \"0\": {
+                    \"query\": \"\\\"Failed password\\\"\",
+                    \"alias\": \"\",
+                    \"color\": \"#4D89F9\",
+                    \"id\": 0,
+                    \"pin\": false,
+                    \"type\": \"lucene\",
+                    \"enable\": true
+                }
+            },
+            \"ids\": [
+                0
+            ]
+        },
+        \"filter\": {
+            \"list\": {
+                \"0\": {
+                    \"type\": \"time\",
+                    \"field\": \"@timestamp\",
+                    \"from\": \"now-24h\",
+                    \"to\": \"now\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 0
+                },
+                \"1\": {
+                    \"type\": \"field\",
+                    \"field\": \"_type\",
+                    \"query\": \"\\\"syslog\\\"\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 1
+                },
+                \"2\": {
+                    \"type\": \"field\",
+                    \"field\": \"program\",
+                    \"query\": \"\\\"sshd\\\"\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 2
+                }
+            },
+            \"ids\": [
+                0,
+                1,
+                2
+            ]
+        }
+    }",
+    "created_by": "NAGIOS",
+    "created_id": "system",
+    "show_everyone": 1
+}

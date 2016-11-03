@@ -1,0 +1,40 @@
+#!/bin/sh -e
+
+pkgname="elasticsearch-1.6.0"
+
+echo "Upgrading Elasticsearch..."
+
+# Delete the old archive
+rm -rf "$pkgname"
+
+# Extract archive
+tar -xzf "$pkgname.tar.gz"
+
+# Make and install 
+(
+	service elasticsearch stop
+    rm -rf /usr/local/nagioslogserver/elasticsearch/lib/*
+    cp -r /usr/local/nagioslogserver/elasticsearch/config/* $pkgname/config
+	cp -r $pkgname/* /usr/local/nagioslogserver/elasticsearch
+	chown -R nagios:nagios /usr/local/nagioslogserver/elasticsearch /var/log/elasticsearch /var/run/elasticsearch
+	chmod +x /etc/init.d/elasticsearch /usr/local/nagioslogserver/elasticsearch/bin/elasticsearch
+
+)
+
+
+# Post-install modifications
+./post-upgrade
+
+# Do a simple sanity check to make sure some key files exist...
+for f in /usr/local/nagioslogserver/elasticsearch/bin/elasticsearch /usr/local/nagioslogserver/elasticsearch/config/elasticsearch.yml ; do
+	if [ ! -f "$f" ]; then
+		echo "ERROR: Elasticsearch install appears to have failed - exiting.  Missing file = $f"
+		exit 1
+	fi
+done
+
+service elasticsearch start
+
+# Things are okay
+echo "Elasticsearch upgraded OK"
+

@@ -1,0 +1,41 @@
+$ModLoad imfile
+$InputFilePollInterval 10
+$PrivDropToGroup adm
+$WorkDirectory /var/lib/rsyslog
+
+# Input for apache_error
+$InputFileName /var/log/httpd/error_log
+$InputFileTag apache_error:
+$InputFileStateFile nls-state-apache_error # Must be unique for each file being polled
+# Uncomment the folowing line to override the default severity for messages
+# from this file.
+#$InputFileSeverity info
+$InputFilePersistStateInterval 20000
+$InputRunFileMonitor
+
+# Forward to Nagios Log Server and then discard, otherwise these messages
+# will end up in the syslog file (/var/log/messages) unless there are other
+# overriding rules.
+if $programname == 'apache_error' then @@%hostname%:%syslog_port%
+if $programname == 'apache_error' then ~
+
+$ModLoad imfile
+$InputFilePollInterval 10
+$PrivDropToGroup adm
+$WorkDirectory /var/lib/rsyslog
+
+# Input for apache_access
+$InputFileName /var/log/httpd/access_log
+$InputFileTag apache_access:
+$InputFileStateFile nls-state-apache_access # Must be unique for each file being polled
+# Uncomment the folowing line to override the default severity for messages
+# from this file.
+#$InputFileSeverity info
+$InputFilePersistStateInterval 20000
+$InputRunFileMonitor
+
+# Forward to Nagios Log Server and then discard, otherwise these messages
+# will end up in the syslog file (/var/log/messages) unless there are other
+# overriding rules.
+if $programname == 'apache_access' then @@%hostname%:%syslog_port%
+if $programname == 'apache_access' then ~

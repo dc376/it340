@@ -1,0 +1,14 @@
+#!/bin/bash -e
+
+pkgname="$1"
+
+# Apply our patches
+echo "Applying Nagios XI patches to Nagios Core..."
+
+# Custom CGIs
+cp patches/cgi/*.c "$pkgname/cgi"
+
+# Makefile mods for Custom CGIs
+patch "$pkgname/cgi/Makefile.in" < patches/cgi-makefile.patch
+
+

@@ -1,0 +1,38 @@
+#!/bin/sh -e
+
+pkgname="elasticsearch-1.6.0"
+
+echo "Installing Elasticsearch..."
+
+# Delete the old archive
+rm -rf "$pkgname"
+
+# Extract archive
+tar -xzf "$pkgname.tar.gz"
+
+# Make and install 
+(
+	mkdir -p /usr/local/nagioslogserver/elasticsearch /var/log/elasticsearch /var/run/elasticsearch
+	cp -r $pkgname/* /usr/local/nagioslogserver/elasticsearch
+	cp -r mods/etc/init.d/* /etc/init.d
+	cp -r mods/etc/sysconfig/* /etc/sysconfig
+	cp -r mods/elasticsearch/* /usr/local/nagioslogserver/elasticsearch
+	chown -R nagios:nagios /usr/local/nagioslogserver/elasticsearch /var/log/elasticsearch /var/run/elasticsearch
+	chmod +x /etc/init.d/elasticsearch /usr/local/nagioslogserver/elasticsearch/bin/elasticsearch
+
+)
+
+# Post-install modifications
+./post-install
+
+# Do a simple sanity check to make sure some key files exist...
+for f in /usr/local/nagioslogserver/elasticsearch/bin/elasticsearch /usr/local/nagioslogserver/elasticsearch/config/elasticsearch.yml ; do
+	if [ ! -f "$f" ]; then
+		echo "ERROR: Elasticsearch install appears to have failed - exiting.  Missing file = $f"
+		exit 1
+	fi
+done
+
+# Things are okay
+echo "Elasticsearch installed OK"
+

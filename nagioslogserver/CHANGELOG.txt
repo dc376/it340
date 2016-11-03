@@ -1,0 +1,172 @@
+1.4.2 - 07/22/2016
+==================
+- Fixed German and French language options causing javascript errors in Dashboards tab [TPS#8943] -JO
+- Fixed issue where using non-default port to connect would cause Dashboards to not load properly [TPS#8861] -JO
+- Fixed audit log 'created_by' field being populated with user ID instead of username [TSP#8609] -JO
+- Fixed AD/LDAP import to allow parenthesis [TPS#8920] -SS, JO
+- Fixed XSS vulnerability in logs that are viewed through the table in Dashboards section [TPS#8694] -JO
+- Fixed various security vulnerabilities -JO
+- Fixed issue with bettermap no longer working [TPS#8694] -JO
+
+1.4.1 - 05/05/2016
+==================
+- Fixed numerous URLs to use https is Log Server is accessed using SSL -SW
+- Fixed double slash in Alert URL when using Interface URL -SW
+- Fixed missing sudo at beginning of commands in source setup examples -SW
+- Fixed inconsistent verbiage in several source setup files -SW
+- Fixed potential problem where proxy server environment variables could cause elasticsearch on localhost to not be reached -SW
+- Fixed missing audit logs for failed login attempts using AD/LDAP -SW
+- Fixed emails going to exchange with crlf of \n instead of \r\n -JO
+- Fixed Alert Method on Alerts Screen not showing username if there were more than 20 users defined [TPS#8037] -JO
+- Fixed cmdsubsys jobs using end time instead of start time when calculation next job run time [TPS#7642] -JO
+- Fixed missing text value for password field error [TPS#7803] -JO
+- Fixed having to manually apply config after a restore to restore old configuation [TPS#7766] -JO
+- Fixed misc PHP notice errors -JO
+- Fixed password length (5+ chars required) and password change error text [TPS#8305] -JO
+- Fixed issue where backup snapshots would not be deleted from repository [TPS#8170] -JO
+
+1.4.0 - 12/21/2015
+==================
+- Removed the index.php from URL (although old urls including index.php will still work) -JO
+- Updated sourceguardian loaders supporting up to php 5.6 -SW
+- Updated elasticsearch curator to 3.4.0 -JO
+- Added Log Source Setup instructions for syslog-ng -SW
+- Added restore single or multiple indices from snapshots -JO
+- Added email templates for alerts -JO
+- Added special macros for email alert templates -JO
+- Added fullscreen capabilities to the dashboard by clicking "Fullscreen" next to dashboard title -JO
+- Added email options to set name of sender and name/email for reply-to field -JO
+- Added interface URL in global settings for URL link in alerts -JO
+- Fixed nxlog sample config to properly send nxlog.log -SW, JO
+- Fixed alert run end time slight offset on slow systems -JO, SW
+- Fixed apply configuration to display an error if configuration could not be successfully verified and was not applied -SW
+- Fixed manage queries not always refreshing by preventing caching get_queries api calls [TPS#7000] -SW
+- Fixed host count on dashboard to no longer count localhost as multiple hosts -JO
+- Fixed php date not being set on install for centos 7 nodes -JO
+
+1.3.0 - 10/08/2015
+==================
+- Added ability to re-order table view -SW
+- Added "Inspect" icon when using quick search -SW
+- Change Audit Log to report Alert Name instead of ID -SW
+- Fixed some missing translations -SW
+- Fixed problem where index didn't exist before adding it to a query -SW
+- Fixed bug where maintenance jobs were not run sequentially possible causing indexes to be deleted or closed before being backup -SW
+- Fixed bug where IE was not redirecting window.location properly -SW 
+- Fixed bug where backup and maintenance process would not always complete all steps by re-ordering steps -SW
+- Fixed bug causing incorrect index to be selected for alerts, specifically a problem when server timezone is offset from UTC -SW
+- Fixed issue where logrotate had windows line endings and giving errors -JO
+
+2015R2.2 - 08/19/2015
+=====================
+- Remove disabling of bloom filters from maintenance settings as they are no longer used in elasticsearch > 1.4 -SW
+- Fixed bug causing URL's in alert emails to have incorrect dates -SW
+- Fixed the stats panel description to display properly -SW
+- Fixed TopN help, which wasn't displaying properly -SW
+- Fixed bug causing logstash config to target wrong cluster when adding instances until manual apply config happened -SW
+- Fixed per instance configuration verification, was defaulting to only verify global configurations -SW
+- Fixed per instance views of configuration files, was defaulting to only show global configurations -SW
+- Fixed additional bug in curator and elasticsearch 1.6.0 causing log backups to not be created -SW
+- Fixed bug causing space being added after each colon when trying to export a query -SW
+- Fixed many language strings remaining English even when different language was selected -SW
+- Fixed "typed" Reports showing blank -SW
+
+2015R2.1 - 07/21/2015
+=====================
+- Updated alert listing to display 100k alerts -JO
+- Updated link in alert emails to display the EXACT period the alert was for instead of a time relative to now -SW
+- Added the ability to add columns and sort order from within table view -SW
+- Added filter icon on fields list to help show that clicking the field name has an action -SW
+- Fixed bug while importing LDAP/AD users that would not assign them the admin level -JO
+- Fixed bug that would not allow deleting an added LDAP/AD server -JO
+- Fixed bug causing Linux Setup commands to not show -SW
+- Fixed Admin Reports page showing blank -SW
+- Fixed bug in curator and elasticsearch 1.6.0 causing log backups to not be created -SW
+
+2015R2.0b - 07/16/2015
+=====================
+- Fix bug causing AD user import to not popultate the AD username field -JO
+- Fix bug causing AD import to not popultate the name field -JO
+
+2015R2.0 - 07/15/2015
+=====================
+- Upgraded to Elasticsearch 1.6.0 -SW
+- Upgraded to Logstash 1.5.1 -SW
+- Upgraded to elasticsearch-knapsack-1.5.2.0 -SW
+- Upgraded NXLog CE version to nxlog-ce-2.9.1347 -SW
+- Added translations for multiple different languages -JO
+- Added LDAP/AD integration and user importing like other Nagios products -JO
+- Added advanced editing for alerts - allowing users to edit queries directly via the ES json object that gets passed -JO
+- Added ability to setup-linux.sh script to add multiple files at once. e.g. -f "/path/to/file /path/to/another/file/*.log" -SW
+- Added configuration snapshot tarballs to the system backup and restore -SW
+- Added checkboxes to cluster status to allow open/close/delete functions on multiple indices (can also shift-select) -JO
+- Added system profile button to 'System Status' page in admin panel  to create a tar like in XI with system information for support -JO
+- Update queries icon in dashboard to magnifying glass from ? to avoid confusion with a "help" icon -SW
+- Updated default timestamp for nav-bar search to use localtime -SW
+- Fixed backup rotation to properly remove old backup files -SW
+- Fixed bug causing system backups to get stuck due to knapsack states. -SW
+- Fixed bug causing WARNING alerts to show as OK -SW
+- Fixed bug in curator that would cause it to fail in certain circumstances -JO
+
+2015R1.4 - 04/09/2015
+=====================
+- Update licensing page for easy transition to Free version once trial expires -SW
+- Fixed bug so edits to users no longer requires entering a new password -SW
+- Fixed bug where URL was incorrect on alerts if cluster_hostname was defined -SW
+- Fixed bug in dashboard loading queries from the alert email link or show dashboard link -JO
+- Fixed bug when adding an instance to give proper permissions to new instance's first written config files -JO
+- Fixed bug causing save button to not populate correctly when importing a dashboard -SW
+- Fixed bug causing alert threshold ranges to not work correctly and always return OK -SW
+- Fixed bug in configuration where removing the first input/filter/output would make them not apply to the file -JO
+
+2015R1.3 - 02/12/2015
+=====================
+- Added support for SSL/TLS/STARTTLS security encryption in SMTP Mail Settings -LG
+- Added curator.sh script to fix curator path issues on some systems -SW
+- Added net-tools install to make sure netstat is installed so Logstash verifications work properly -JO
+- Added ability to test Email Settings -SW
+- Added Subsystem Commands section in Admin panel for managing subsystem jobs -JO
+- Change to use transport protocol from logstash to elasticsearch as http has known bugs leaking file descriptors -SW
+- Change querying to make queries with and / or to work with lowercase and and or the same way uppercase joins work -SW
+- Revert to standard 60 day trial period. Just slightly less free awesomeness. ;) -SW
+- Fixed issue where opening config section wouldn't be set to the full text size -JO
+- Fixed result sizes to be much larger for most internal elasticsearch queries -JO
+- Fixed every-other redirect to snapshots page on "Save & Apply" button click -JO
+- Fixed issue where global commands weren't given the proper ID and instead have a randomly generated ID -JO
+- Fixed no default values for close/delete index time settings in backup and maintenance -JO
+- Fixed bug causing you to not be able to enter 0 on backup and Maintenance page -SW
+- Fixed bug causing alert threshold set to 0 to not function properly -SW
+- Fixed bug in broad search where events Over Time legend would not update after changing query -SW
+
+2015R1.2b - 12/15/2014
+=====================
+- Fixed firewall issue on RHEL/CentOS 7 install -JO
+- Fixed opening config options modal in dashboard scrolling the page to the top -JO
+
+2015R1.2 - 12/11/2014
+=====================
+- Added support for RHEL/CentOS 7 installs -JO
+- Added ability to change timezone from inside the web GUI -JO
+- Fixed delete icons on backup page to not be the same as the refresh symbol -JO
+- Fixed the "FREE" license key to be able to be set correctly -JO
+- Fixed hostname/servicename for NRDP alerts not showing up when editing the alert -JO
+- Fixed user management page to only display the first 10 users -JO
+- Fixed issue where right-clicking Dashboard link wouldn't open dropdown menu -JO
+- Fixed bug where Dashboard panels do not conform to set sizes if labels are overly large -JO
+
+2015R1.1 - 11/18/2014
+=====================
+- Added auto-focus on username field on login page -JO
+- Removed style selection in dashboard editor since it's no longer available (dark theme doesn't work, possibly more themes later) -JO
+- Fixed bug with restoring snapshot if index was deleted -SW
+- Fixed RHEL license check on install -JO
+- Fixed sending alerts only on warning/critical (the checkbox wasn't working properly) -JO
+- Fixed saving configurations of instance nodes not changing global config -JO
+- Fixed saving configurations output filter being set to active/inactive properly -JO
+- Fixed alerts created in Dashboard not showing "Created By" field -JO
+- Fixed output message for weird config verification issues -JO
+- Fixed CentOS 5 installation -JO
+
+2015R1.0 - 10/14/2014
+=====================
+Initial Release

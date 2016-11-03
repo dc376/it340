@@ -1,0 +1,159 @@
+{
+    "template" : "nagioslogserver",
+    "settings" : {
+        "number_of_replicas": 1,
+        "index.number_of_shards" : 1
+    },
+    "mappings": {
+        "_default_" : {
+            "_source" : { "enabled" : true },
+            "_timestamp" : { "enabled" : true }
+        },
+        "user": {
+            "properties": {
+                "apiaccess": { "type": "string" },
+                "apikey": { "type": "string", "index": "not_analyzed" },
+                "auth_type": { "type": "string" },
+                "created": { "type": "string" },
+                "created_by": { "type": "string" },
+                "default_dashboard": { "type": "string" },
+                "email": { "type": "string" },
+                "language": { "type": "string" },
+                "password": { "type": "string", "index": "not_analyzed" },
+                "username": { "type": "string", "index": "not_analyzed" }
+            }
+        },
+        "node": {
+            "properties": {
+                "elasticsearch": {
+                    "properties": {
+                        "message": { "type": "string" },
+                        "pid": { "type": "string" },
+                        "status": { "type": "string" }
+                    }
+                },
+                "hostname": { "type": "string" },
+                "address": { "type": "string", "index": "not_analyzed" },
+                "last_updated": { "type": "long" },
+                "logstash": {
+                    "properties": {
+                        "message": { "type": "string" },
+                        "pid": { "type": "string" },
+                        "status": { "type": "string" }
+                    }
+                },
+                "config_inputs": { "type": "object", "index": "not_analyzed" },
+                "config_outputs": { "type": "object", "index": "not_analyzed" },
+                "config_filters": { "type": "object", "index": "not_analyzed" },
+				"ls_version": { "type": "string" },
+				"ls_release": { "type": "long" }
+            }
+        },
+        "commands": {
+            "properties": {
+                "args": { "type": "object" },
+                "command": { "type": "string" },
+                "created": { "type": "string" },
+                "created_by": { "type": "string" },
+                "active": { "type": "long" },
+                "frequency": { "type": "string" },
+                "last_run_output": { "type": "string" },
+                "last_run_status": { "type": "string" },
+                "last_run_time": { "type": "string" },
+                "node": { "type": "string", "index": "not_analyzed" },
+                "run_time": { "type": "long" },
+                "type": { "type": "string" },
+                "status": { "type": "string" }
+            }
+        },
+        "cf_option": {
+            "properties": {
+                "created": { "type": "string" },
+                "created_by": { "type": "string" },
+                "modified_by": { "type": "string" },
+                "value": { "type": "string" }
+            }
+        },
+        "snapshot": {
+            "properties": {
+                "name": { "type": "string" },
+                "created": { "type": "long" },
+                "path": { "type": "string" },
+                "filename": { "type": "string" },
+                "clean_filename": { "type": "string" },
+				"auto": { "type": "long" }
+            }
+        },
+        "alert": {
+            "properties": {
+                "name": { "type": "string" },
+                "check_interval": { "type": "string" },
+                "lookback_period": { "type": "string" },
+                "warning": { "type": "string" },
+                "critical": { "type": "string" },
+                "query": { "type": "string" },
+                "dash_query": { "type": "string" },
+                "method": { "type": "object" },
+                "created": { "type": "long" },
+				"created_by": { "type": "string" },
+                "alert_crit_only": { "type": "long" },
+                "last_status": { "type": "string" },
+                "last_output": { "type": "string" },
+                "last_run": { "type": "long" },
+                "next_run": { "type": "long" },
+                "active": { "type": "long" }
+            }
+        },
+        "nrdp_server": {
+            "properties": {
+                "name": { "type": "string" },
+                "address": { "type": "string" },
+                "token": { "type": "string" }
+            }
+        },
+        "reactor_server": {
+            "properties": {
+                "name": { "type": "string" },
+                "address": { "type": "string" },
+                "apikey": { "type": "string" }
+            }
+        },
+        "snmp_reactor": {
+            "properties": {
+                "name": { "type": "string" },
+                "address": { "type": "string" },
+                "port": { "type": "string" },
+                "version": { "type": "string" },
+                "username": { "type": "string" },
+                "auth_level": { "type": "string" },
+                "auth_password": { "type": "string" },
+                "auth_protocol": { "type": "string" },
+                "priv_password": { "type": "string" },
+                "priv_protocol": { "type": "string" }
+            }
+        },
+        "email_template": {
+            "properties": {
+                "name": { "type": "string" },
+                "created_by": { "type": "string" },
+                "modified_by": { "type": "string" },
+                "last_edit": { "type": "string" },
+                "subject": { "type": "string" },
+                "body": { "type": "string" }
+            }
+        },
+        "query": {
+            "properties": {
+                "name": { "type": "string" },
+                "raw": { "type": "string" },
+                "services": { "type": "string" },
+                "dash_query": { "type": "string" },
+                "created_by": { "type": "string" },
+                "created_id": { "type": "string" },
+                "show_everyone": { "type": "long" },
+                "imported": { "type": "long" },
+				"active": { "type": "long" }
+            }
+        }
+    }
+}

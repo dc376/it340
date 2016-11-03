@@ -1,0 +1,90 @@
+{
+    "name": "Error Critical Alert Severity",
+    "raw": "{
+        \"query\": {
+            \"filtered\": {
+                \"query\": {
+                    \"bool\": {
+                        \"should\": [
+                            {
+                                \"query_string\": {
+                                    \"query\": \"*\"
+                                }
+                            }
+                        ]
+                    }
+                },
+                \"filter\": {
+                    \"bool\": {
+                        \"must\": [
+                            {
+                                \"range\": {
+                                    \"@timestamp\": {
+                                        \"from\": 1412797557683,
+                                        \"to\": 1412883957683
+                                    }
+                                }
+                            },
+                            {
+                                \"fquery\": {
+                                    \"query\": {
+                                        \"query_string\": {
+                                            \"query\": \"severity_label: (alert error critical) OR Severity: (alert error critical)\"
+                                        }
+                                    },
+                                    \"_cache\": true
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }",
+    "services": "{
+        \"query\": {
+            \"list\": {
+                \"0\": {
+                    \"id\": 0,
+                    \"type\": \"lucene\",
+                    \"query\": \"*\",
+                    \"alias\": \"\",
+                    \"color\": \"#4D89F9\",
+                    \"pin\": false,
+                    \"enable\": true
+                }
+            },
+            \"ids\": [
+                0
+            ]
+        },
+        \"filter\": {
+            \"list\": {
+                \"0\": {
+                    \"from\": \"now-24h\",
+                    \"to\": \"now\",
+                    \"field\": \"@timestamp\",
+                    \"type\": \"time\",
+                    \"active\": true,
+                    \"id\": 0,
+                    \"mandate\": \"must\"
+                },
+                \"1\": {
+                    \"type\": \"querystring\",
+                    \"query\": \"severity_label: (alert error critical) OR Severity: (alert error critical)\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 1
+                }
+            },
+            \"ids\": [
+                0,
+                1
+            ]
+        }
+    }",
+    "created_by": "NAGIOS",
+    "created_id": "system",
+    "show_everyone": 1
+}

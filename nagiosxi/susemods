@@ -1,0 +1,71 @@
+#!/bin/bash -e
+. ./xi-sys.cfg
+
+########################################################################
+# START SLES 11 special case                                           #
+########################################################################
+
+# fake yum
+if ! which yum &>/dev/null; then
+    cat >/usr/bin/yum <<-EOF
+#!/bin/bash
+
+options=()  # the buffer array for the parameters
+command=install
+while [ -n "\$1" ]; do
+        case "\$1" in
+          -y)
+              shift
+              ;;
+           install)
+              command=install
+              shift
+              ;;
+          update)
+              command=update
+              shift
+              ;;
+          remove)
+              command=remove
+              shift
+              ;;
+          --nogpgcheck)
+              shift
+              ;;
+          localinstall)
+              shift
+              ;;
+          *)
+              options+=("\$1")
+              shift
+              ;;
+        esac
+done
+
+zypper --no-gpg-check "\$command" -y "\${options[@]}"
+
+EOF
+
+    chmod +x /usr/bin/yum
+fi
+
+if [ "$dist" = "suse11" ]; then
+    if ! rpm -q sle-sdk-release &>/dev/null; then
+
+		echo "Enabling SLE SDK repo..."
+		PKG="packages/sle-sdk-release-*$version*.rpm"
+		##Add logging so we can trace this failure in the future -MG
+		echo "Installing SLE SDK PKG: $PKG"
+		rpm -Uvh "$PKG"
+		unset PKG
+
+	fi
+
+	# Check to make sure RPM was installed
+	if rpm -q sle-sdk-release &>/dev/null; then
+		echo "sle-sdk-release RPM installed OK"
+	else
+		echo "ERROR: sle-sdk-release RPM was not installed - exiting." >&2
+		exit 1
+	fi
+fi

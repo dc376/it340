@@ -1,0 +1,9 @@
+#!/bin/sh -e
+
+pkgname="$1"
+
+# Apply our patches
+echo "Applying Nagios XI patches to PNP..."
+
+# Apply the patch files
+patch "$pkgname/src/npcd.c" < patches/umask.patch

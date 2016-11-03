@@ -1,0 +1,3 @@
+iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 2056 -j ACCEPT
+iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport 2057 -j ACCEPT
+service iptables save

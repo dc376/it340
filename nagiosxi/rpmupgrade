@@ -1,0 +1,165 @@
+#!/bin/bash -e
+
+# Set up system variables
+./init.sh
+. ./xi-sys.cfg
+
+./xivar RPMINSTALL 1
+RPMINSTALL=1
+
+export INSTALL_PATH=`pwd`
+INTERACTIVE="False"
+
+# copy xi-sys.cfg
+cp xi-sys.cfg "$proddir/var/"
+cp xi-sys.cfg ./nagiosxi/basedir/var/
+
+# Verify server has needed prereqs
+/usr/bin/php ./verify-prereqs.php
+
+# Get existing version ID
+oldversion=$(./get-version)
+
+## VERSION-SPECIFIC FIXES ####################################
+
+## 2014R2.7
+if [ "$oldversion" -lt 416 ]; then
+    
+    # update nagios init script to not exit 0 if process isn't running
+    sed -i 's/echo "nagios is not running"/echo "nagios is not running";exit 3/g' /etc/init.d/nagios
+    
+fi
+
+## 5R1.0
+if [ "$oldversion" -lt 501 ]; then
+    
+    # Fix the active_directory component from loading adLDAP library
+    if [ -f $proddir/html/includes/component/active_directory/active_directory.inc.php ];then
+        sed -i '/\/adLDAP\/adLDAP.php/d' $proddir/html/includes/component/active_directory/active_directory.inc.php
+    fi
+    
+    # make NPCD status more robust
+    sed -i 's/ps -p $PID_NUMBER > /ps -p $PID_NUMBER | grep npcd > /g' /etc/init.d/npcd
+    
+    # update nagios init script to not exit 0 if process isn't running
+    sed -i 's/echo "nagios is not running"/echo "nagios is not running";exit 3/g' /etc/init.d/nagios
+    
+    # make NPCD status more robust
+    sed -i 's/ps -p $PID_NUMBER > /ps -p $PID_NUMBER | grep npcd > /g' /etc/init.d/npcd
+    
+    if [ "$cfg__db_info__nagiosxi__dbtype" == "pgsql" ]; then
+        # add details to auditlog
+        echo "ALTER TABLE xi_auditlog ADD COLUMN details text;" | psql $cfg__db_info__nagiosxi__db $cfg__db_info__nagiosxi__user
+        # reset themes
+        echo "delete from xi_usermeta where keyname='theme';"|psql $cfg__db_info__nagiosxi__db $cfg__db_info__nagiosxi__user
+        echo "delete from xi_options where name='theme';"|psql $cfg__db_info__nagiosxi__db $cfg__db_info__nagiosxi__user
+    fi
+    
+fi
+
+# Version < 5.2.0
+if [ "$oldversion" -lt 511 ]; then
+
+    # Verify that upgrades directory exists
+    if [ ! -d /usr/local/nagiosxi/var/upgrades ]; then
+        mkdir -p /usr/local/nagiosxi/var/upgrades
+        chown $apacheuser:$nagiosgroup /usr/local/nagiosxi/var/upgrades
+        chmod 754 /usr/local/nagiosxi/var/upgrades
+        chmod +x /usr/local/nagiosxi/var/upgrades
+    fi
+
+fi
+
+# Version < 5.2.1
+if [ "$oldversion" -lt 512 ]; then
+
+    # modify ndo2db init
+    sed -i 's/Ndo2dbPID=.*/Ndo2dbPID=\`head -n 1 $Ndo2dbRunFile 2> \/dev\/null\`/g' /etc/init.d/ndo2db
+
+fi
+
+# Version < 5.2.3
+if [ "$oldversion" -lt 514 ]; then
+
+    # Fix perms on autodiscovery
+    chmod 776 $proddir/html/includes/components/autodiscovery/jobs
+
+fi
+
+##########################################################################
+## COMMON FIXES
+##
+## These run during ever upgrade after version-specific upgrade procedures
+##########################################################################
+
+install -m 644 nagiosxi/nagiosxi.cron.d /etc/cron.d/nagiosxi 
+
+# Fix/update sudoers
+./install-sudoers
+
+# Fix perms on Nagios etc directory
+chown $apacheuser:$nagiosgroup /usr/local/nagios/etc
+chmod g+s /usr/local/nagios/etc
+
+
+# Install Sourceguardian extension
+./install-sourceguardian-extension.sh
+
+# Install updated NagiosXI PHP files, scripts, etc. to /usr/local/nagiosxi
+# This also makes the latest config perm reset utility
+./install-html
+
+# Update databases (indexes, etc)
+(
+	cd "$proddir/scripts"
+	/usr/bin/php patch_ndoutils.php
+)
+
+# Fix sequences in Postgres database
+echo "Updating sequences..."
+./nagiosxi/basedir/tools/fix_postgres_sequences.sh
+
+# Fix permissions on config files
+echo "Fixing config file permissions..."
+chown $apacheuser:$nagiosgroup /usr/local/nagios/etc/*.cfg
+chown $apacheuser:$nagiosgroup /usr/local/nagios/etc/hosts/*.cfg
+chown $apacheuser:$nagiosgroup /usr/local/nagios/etc/services/*.cfg
+
+# Set permissions on htpasswd file
+echo "Fixing htpasswd permissions..."
+chown -R $nagiosuser:$apachegroup "$proddir/etc/htpasswd.users"
+
+# Enforce proper group membership
+echo "Checking group memberships..."
+if [ "$dist" = "suse11" ]; then
+        eval "$usermodbin" -A "$nagioscmdgroup" "$nagiosuser"
+        eval "$usermodbin" -A "$nagioscmdgroup" "$apacheuser"
+        eval "$usermodbin" -A "$nagiosgroup" "$nagiosuser"
+        eval "$usermodbin" -A "$nagiosgroup" "$apacheuser"
+else
+        eval "$usermodbin" -a -G "$nagioscmdgroup" "$nagiosuser"
+        eval "$usermodbin" -a -G "$nagioscmdgroup" "$apacheuser"
+        eval "$usermodbin" -a -G "$nagiosgroup" "$nagiosuser"
+        eval "$usermodbin" -a -G "$nagiosgroup" "$apacheuser"
+fi
+
+# Install new Nagios Core templates (restarts Nagios Core)
+./install-templates
+
+# Fix for php-mcrypt bug
+if [ -f /etc/php.d/mcrypt.ini ]; then
+	echo "Fixing php-mcrypt bug..."
+    perl -p -i -e "s|module.so|mcrypt.so|g" /etc/php.d/mcrypt.ini
+fi
+
+# Restart apache so it recognizes the new permissions
+if [ ! `command -v systemctl` ]; then
+    service $httpd restart
+else
+    systemctl restart $httpd
+fi
+    
+# Set SNMP MIB directory perms since new versions of net-snmp-libs changes this
+chown -R .$nagiosgroup "$mibsdir"
+chmod g+ws "$mibsdir"
+

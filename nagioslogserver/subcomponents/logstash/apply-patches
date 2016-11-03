@@ -1,0 +1,15 @@
+#!/bin/sh -e
+
+pkgname="$1"
+
+# Apply our patches
+echo "Applying Nagios patches to Logstash..."
+
+
+# From c692bdf9140648fe4c4eb1848eac4de07acaa713 Mon Sep 17 00:00:00 2001
+# Subject: [PATCH] TCP input host field contains source port
+
+# https://github.com/elasticsearch/logstash/pull/1649
+#
+# Remove when patch get included
+#patch "$pkgname/lib/logstash/inputs/tcp.rb" < patches/tcp_host_only.patch

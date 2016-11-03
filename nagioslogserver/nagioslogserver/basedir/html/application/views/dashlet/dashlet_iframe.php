@@ -1,0 +1,1 @@
+<iframe src="<?php echo base_url(); ?>index.php/dashboard/dashlet#<?php echo $dashlet_path; ?>?<?php echo $dashlet_qs; ?>" height="100%" width="100%" frameborder="0" style="overflow:hidden;"></iframe>

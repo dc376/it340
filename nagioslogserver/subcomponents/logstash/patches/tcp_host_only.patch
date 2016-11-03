@@ -1,0 +1,8 @@
+168c168
+<             handle_socket(s, s.peer, output_queue, @codec.clone)
+---
+>             handle_socket(s, s.peeraddr[3], output_queue, @codec.clone)
+215c215
+<       handle_socket(client_socket, client_socket.peer, output_queue, @codec.clone)
+---
+>       handle_socket(client_socket, client_socket.peeraddr[3], output_queue, @codec.clone)

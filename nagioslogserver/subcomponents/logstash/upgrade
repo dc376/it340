@@ -1,0 +1,42 @@
+#!/bin/sh -e
+
+pkgname="logstash-1.5.1"
+
+echo "Upgrading Logstash..."
+
+# Delete the old archive
+rm -rf "$pkgname"
+
+# Extract archive
+tar -xzf "$pkgname.tar.gz"
+
+# Apply our patches
+./apply-patches "$pkgname"
+
+# Make and install 
+(
+	rm -rf /usr/local/nagioslogserver/logstash/{lib,vendor,spec}/*
+    cp -r $pkgname/* /usr/local/nagioslogserver/logstash
+	chown -R nagios:nagios /usr/local/nagioslogserver/logstash /var/run/logstash /var/log/logstash
+	chmod -R g+w /usr/local/nagioslogserver/logstash/etc
+	chmod +x /etc/init.d/logstash /etc/sysconfig/logstash
+    sed -i s/index_type/document_type/ /usr/local/nagioslogserver/logstash/etc/conf.d/999_outputs.conf
+)
+
+
+# Post-install modifications
+#./post-install
+
+# Do a simple sanity check to make sure some key files exist...
+for f in /usr/local/nagioslogserver/logstash/bin/logstash ; do
+	if [ ! -f "$f" ]; then
+		echo "ERROR: Logstash install appears to have failed - exiting.  Missing file = $f"
+		exit 1
+	fi
+done
+
+service logstash restart
+
+# Things are okay
+echo "Logstash upgraded OK"
+

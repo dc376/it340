@@ -1,0 +1,3 @@
+<Route 1>
+    Path internal, eventlog, iis_log1 => out
+</Route>

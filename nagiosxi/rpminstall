@@ -1,0 +1,194 @@
+#!/bin/bash -e
+
+# Set up system variables
+./init.sh
+. ./xi-sys.cfg
+. ./functions.sh
+
+./xivar RPMINSTALL 1
+RPMINSTALL=1
+
+# Explicitly set umask
+umask 0022
+
+# Install log
+log="/tmp/xi-install.log"
+
+# Installation is interactive by default
+export INTERACTIVE="False"
+# INSTALL_PATH is current dir for use in making install dir independent
+export INSTALL_PATH=`pwd`
+
+if ! path_is_ok; then
+	echo "Your system \$PATH does not include /sbin and /usr/sbin. This is usually the result of installing GNOME rather than creating a clean system."
+	echo "Adding /sbin and /usr/sbin to \$PATH."
+	PATH="$PATH:/usr/sbin:/sbin"
+fi
+
+# Check Mysql root password if MySQL is already installed and running...
+if service $mysqld status &>/dev/null; then
+	# Test for null MySQL root password
+	if mysqlshow -u root &>/dev/null; then
+		echo "After installation your MySQL root password will be set to 'nagiosxi' (without quotes)."
+	elif mysqlshow -u root -p"$mysqlpass" &>/dev/null; then
+		echo "Stored MySQL password validated."
+	else
+		for i in 1 2 3; do
+			if [ "$INTERACTIVE" = "True" ]; then
+				echo "Enter the MySQL root password to continue..."
+				read -p "MySQL Root Password: " pass
+			fi
+
+			# Test the password
+			if mysqlshow -u root -p"$pass" &>/dev/null; then
+				echo "Password validated."
+				mysqlpass="$pass"
+
+				# Update xi-sys.cfg with MySQL password for later use by subcomponent install
+				if ! ./xivar mysqlpass "$mysqlpass"; then
+					echo "ERROR: Failed to update xi-sys.cfg with MySQL password - exiting." >&2
+					exit 1
+				fi			
+
+				break
+			else
+				echo "Password failed." >&2
+				[ $i -eq 3 ] && exit 1
+			fi
+		done
+	fi
+else
+	echo "MySQL not yet installed - that's okay."
+fi
+
+
+
+touch installed.repos
+#TODO - Below may need work for being sure prereqs get added to RPM
+touch installed.prereqs
+
+# Fix for php-mcrypt bug
+if [ -f /etc/php.d/mcrypt.ini ]; then
+	echo "Fixing php-mcrypt bug..."
+    perl -p -i -e "s|module.so|mcrypt.so|g" /etc/php.d/mcrypt.ini
+fi
+
+
+run_sub ./2-usersgroups
+run_sub ./3-dbservers
+run_sub ./4-services
+run_sub ./5-sudoers
+run_sub ./6-firewall
+run_sub ./8-selinux
+run_sub ./9-dbbackups
+run_sub ./10-phplimits
+run_sub ./11-sourceguardian
+touch installed.mrtg
+run_sub ./14-timezone
+# TODO - Below subcomponents may need work
+(
+    cd subcomponents/nagiosql
+    ./pre-install
+)
+(
+    cd subcomponents/ndoutils
+    ver=$(find -name 'ndo*tar.gz'|cut -d'/' -f 2)
+    ./post-install ${ver%'.tar.gz'}
+)
+(
+    cd subcomponents/webinject
+    ./install
+)
+# Special Ajaxterm install, binary and init packages in it's own RPM
+(
+    cd subcomponents/ajaxterm
+    
+    # Change Apache SSL configuration...
+    if [ ! -e $httpdconfdir/ssl.conf ]; then
+        echo "ERROR: ssl.conf not found - aborting Ajaxterm install."
+        return
+    fi
+
+    # Make a backup
+    if [ ! -e $httpdconfdir/ssl.conf.nagiosxibackup ]; then
+        /bin/cp -f $httpdconfdir/ssl.conf $httpdconfdir/ssl.conf.nagiosxibackup
+    fi
+
+    # Configure Ajaxterm if necessary
+    install1=`grep ajaxterm $httpdconfdir/*.conf | wc -l`
+    install2=`grep ajaxterm $httpdconf | wc -l`
+    echo "CHECK1: ${install1}"
+    echo "CHECK2: ${install2}"
+    if [ ${install1} -eq 0 ] && [ ${install2} -eq 0 ]; then
+
+        # Generate a new ssl.conf with proxy mods
+        grep -v "</VirtualHost>" $httpdconfdir/ssl.conf > $httpdconfdir/ssl.conf.new
+        cat sslmod.conf >> $httpdconfdir/ssl.conf.new
+        mv -f  $httpdconfdir/ssl.conf.new  $httpdconfdir/ssl.conf
+
+        # Restart Apache
+        if [ ! `command -v systemctl` ]; then
+            service ${httpd} restart
+        else
+            systemctl restart ${httpd}
+        fi
+        
+        # roll back config if we broke apache
+        if [ $? -eq 1 ]; then 
+            echo "Configuration error with Ajaxterm"
+            echo "Restoring previous configuration..."
+            cp $httpdconfdir/ssl.conf $httpdconfdir/ajaxterm.fail
+            #restore previous conf
+            mv -f $httpdconfdir/ssl.conf.nagiosxibackup $httpdconfdir/ssl.conf
+            service ${httpd} restart
+            echo "Ajaxterm installation ABORTED"
+        else
+            # Start Ajaxterm
+            chkconfig ajaxterm on
+            if [ ! `command -v systemctl` ]; then
+                service ajaxterm restart
+            else
+                systemctl restart ajaxterm
+            fi
+            echo "Ajaxterm installed"
+        fi
+        
+    else
+        echo "It appears as though Ajaxterm is already configured, so we'll skip that step."
+    fi
+)
+touch installed.subcomponents
+mkdir -p $proddir/html/includes/components/ldap_ad_integration $proddir/html/includes/components/autodiscovery $proddir/html/includes/components/nrdsconfigmanager $proddir/html/includes/components/snmptrapsender
+rm -f nagiosxi/basedir/html/includes/components/ldap_ad_integration/install.sh
+cat /dev/null > $proddir/html/includes/components/ldap_ad_integration/install.sh
+cat /dev/null > $proddir/html/includes/components/autodiscovery/install.sh
+cat /dev/null > $proddir/html/includes/components/nrdsconfigmanager/install.sh
+cat /dev/null > $proddir/html/includes/components/snmptrapsender/install.sh
+
+chmod +x $proddir/html/includes/components/ldap_ad_integration/install.sh $proddir/html/includes/components/autodiscovery/install.sh \
+$proddir/html/includes/components/nrdsconfigmanager/install.sh $proddir/html/includes/components/snmptrapsender/install.sh
+
+chmod +x $proddir/html/includes/components/autodiscovery/install.sh \
+$proddir/html/includes/components/nrdsconfigmanager/install.sh  $proddir/html/includes/components/snmptrapsender/install.sh
+
+run_sub ./B-installxi
+run_sub ./C-cronjobs
+run_sub ./D-chkconfigalldaemons
+# setup file to import, then
+# New object config files
+cp -r subcomponents/nagioscore/mods/cfg/objects/* /usr/local/nagios/etc/import
+# Static config files
+cp -r subcomponents/nagioscore/mods/cfg/static/* /usr/local/nagios/etc/static
+# Config files to be imported
+cp -r subcomponents/nagioscore/mods/cfg/import/* /usr/local/nagios/etc/import
+run_sub ./E-importnagiosql
+run_sub ./F-startdaemons
+run_sub ./Z-webroot
+
+# Restart mysqld
+if [ ! `command -v systemctl` ]; then
+    service $mysqld restart
+else
+    systemctl restart $mysqld
+fi
+

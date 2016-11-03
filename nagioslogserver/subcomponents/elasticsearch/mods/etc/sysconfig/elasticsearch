@@ -1,0 +1,61 @@
+# Directory where the Elasticsearch binary distribution resides
+APP_DIR="/usr/local/nagioslogserver"
+ES_HOME="$APP_DIR/elasticsearch"
+
+# Heap Size (defaults to 256m min, 1g max)
+# Nagios Log Server Default to 0.5 physical Memory
+ES_HEAP_SIZE=$(expr $(free -m|awk '/^Mem:/{print $2}') / 2 )m
+
+# Heap new generation
+#ES_HEAP_NEWSIZE=
+
+# max direct memory
+#ES_DIRECT_SIZE=
+
+# Additional Java OPTS
+#ES_JAVA_OPTS=
+
+# Maximum number of open files
+MAX_OPEN_FILES=65535
+
+# Maximum amount of locked memory
+MAX_LOCKED_MEMORY=unlimited
+
+# Maximum number of VMA (Virtual Memory Areas) a process can own
+MAX_MAP_COUNT=262144
+
+# Elasticsearch log directory
+LOG_DIR=/var/log/elasticsearch
+
+# Elasticsearch data directory
+DATA_DIR="$ES_HOME/data"
+
+# Elasticsearch work directory
+WORK_DIR="$APP_DIR/tmp/elasticsearch"
+
+# Elasticsearch conf directory
+CONF_DIR="$ES_HOME/config"
+
+# Elasticsearch configuration file (elasticsearch.yml)
+CONF_FILE="$ES_HOME/config/elasticsearch.yml"
+
+# User to run as, change this to a specific elasticsearch user if possible
+# Also make sure, this user can write into the log directories in case you change them
+# This setting only works for the init script, but has to be configured separately for systemd startup
+ES_USER=nagios
+ES_GROUP=nagios
+
+# Configure restart on package upgrade (true, every other setting will lead to not restarting)
+#RESTART_ON_UPGRADE=true
+
+if [ "x$1" == "xstart" -o "x$1" == "xrestart" -o "x$1" == "xreload" -o "x$1" == "xforce-reload" ];then
+	GET_ES_CONFIG_MESSAGE="$( php $APP_DIR/scripts/get_es_config.php )"
+	GET_ES_CONFIG_RETURN=$?
+
+	if [ "$GET_ES_CONFIG_RETURN" != "0" ]; then
+		echo $GET_ES_CONFIG_MESSAGE
+		exit 1
+	else
+		ES_JAVA_OPTS="$GET_ES_CONFIG_MESSAGE"
+	fi
+fi

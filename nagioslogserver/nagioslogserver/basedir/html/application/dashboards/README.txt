@@ -1,0 +1,1 @@
+Dashboards in this folder get added into the database on fullinstall

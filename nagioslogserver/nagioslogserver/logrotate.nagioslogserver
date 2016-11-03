@@ -1,0 +1,17 @@
+/var/log/logstash/*.log {
+        daily
+        rotate 7
+        copytruncate
+        compress
+        missingok
+        notifempty
+}
+
+/var/log/elasticsearch/*.log {
+        daily
+        rotate 7
+        copytruncate
+        compress
+        missingok
+        notifempty
+}

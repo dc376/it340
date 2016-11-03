@@ -1,0 +1,132 @@
+{
+    "name": "Windows Failed Logins",
+    "raw": "{
+        \"query\": {
+            \"filtered\": {
+                \"query\": {
+                    \"bool\": {
+                        \"should\": [
+                            {
+                                \"query_string\": {
+                                    \"query\": \"*\"
+                                }
+                            }
+                        ]
+                    }
+                },
+                \"filter\": {
+                    \"bool\": {
+                        \"must\": [
+                            {
+                                \"range\": {
+                                    \"@timestamp\": {
+                                        \"from\": 1412792929211,
+                                        \"to\": 1412879329211
+                                    }
+                                }
+                            },
+                            {
+                                \"fquery\": {
+                                    \"query\": {
+                                        \"query_string\": {
+                                            \"query\": \"EventID: (4625)\"
+                                        }
+                                    },
+                                    \"_cache\": true
+                                }
+                            },
+                            {
+                                \"fquery\": {
+                                    \"query\": {
+                                        \"query_string\": {
+                                            \"query\": \"_type: (\\\"eventlog\\\")\"
+                                        }
+                                    },
+                                    \"_cache\": true
+                                }
+                            },
+                            {
+                                \"fquery\": {
+                                    \"query\": {
+                                        \"query_string\": {
+                                            \"query\": \"SourceName: (\\\"Microsoft-Windows-Security-Auditing\\\")\"
+                                        }
+                                    },
+                                    \"_cache\": true
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }",
+    "services": "{
+        \"query\": {
+            \"list\": {
+                \"0\": {
+                    \"query\": \"*\",
+                    \"alias\": \"\",
+                    \"color\": \"#4D89F9\",
+                    \"id\": 0,
+                    \"pin\": false,
+                    \"type\": \"lucene\",
+                    \"enable\": true
+                }
+            },
+            \"ids\": [
+                0
+            ]
+        },
+        \"filter\": {
+            \"list\": {
+                \"0\": {
+                    \"type\": \"time\",
+                    \"field\": \"@timestamp\",
+                    \"from\": \"now-24h\",
+                    \"to\": \"now\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 0
+                },
+                \"1\": {
+                    \"type\": \"field\",
+                    \"field\": \"EventID\",
+                    \"query\": \"4625\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 1
+                },
+                \"2\": {
+                    \"type\": \"field\",
+                    \"field\": \"_type\",
+                    \"query\": \"\\\"eventlog\\\"\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 2
+                },
+                \"3\": {
+                    \"type\": \"field\",
+                    \"field\": \"SourceName\",
+                    \"query\": \"\\\"Microsoft-Windows-Security-Auditing\\\"\",
+                    \"mandate\": \"must\",
+                    \"active\": true,
+                    \"alias\": \"\",
+                    \"id\": 3
+                }
+            },
+            \"ids\": [
+                0,
+                1,
+                2,
+                3
+            ]
+        }
+    }",
+    "created_by": "NAGIOS",
+    "created_id": "system",
+    "show_everyone": 1
+}

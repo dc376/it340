@@ -1,0 +1,36 @@
+#!/bin/sh -e
+
+pkgname="kibana"
+
+echo "Upgrading Kibana..."
+
+# Delete the old archive
+#rm -rf "$pkgname"
+
+# Extract archive
+#tar -xzf "$pkgname.tar.gz"
+
+# Copy new files over
+(
+	mkdir -p /var/www/html/nagioslogserver/www
+	cp -r $pkgname/src/* /var/www/html/nagioslogserver/www
+    if [ -f /var/www/html/nagioslogserver/www/index.html ];then
+        mv /var/www/html/nagioslogserver/www/index.html /var/www/html/nagioslogserver/www/index.html_old
+    fi
+)
+
+
+# Post-upgrade modifications
+./post-upgrade
+
+# Do a simple sanity check to make sure some key files exist...
+for f in /var/www/html/nagioslogserver/www/config.js ; do
+	if [ ! -f "$f" ]; then
+		echo "ERROR: Kibana install appears to have failed - exiting.  Missing file = $f"
+		exit 1
+	fi
+done
+
+# Things are okay
+echo "Kibana upgraded OK"
+

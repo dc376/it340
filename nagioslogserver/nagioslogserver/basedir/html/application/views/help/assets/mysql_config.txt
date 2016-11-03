@@ -1,0 +1,18 @@
+$ModLoad imfile
+$InputFilePollInterval 10
+$PrivDropToGroup adm
+$WorkDirectory /path/to/rsyslog/spool
+
+# Input for mysqld.log
+$InputFileName /var/log/mysqld.log
+$InputFileTag mysqld_log:
+$InputFileStateFile nls-state-mysqld_log # Must be unique for each file being polled
+# Uncomment the folowing line to override the default severity for messages
+# from this file.
+#$InputFileSeverity info
+$InputFilePersistStateInterval 20000
+$InputRunFileMonitor
+
+# Forward to Nagios Logserver and then discard.
+if $programname == 'mysqld_log' then @@%hostname%:%syslog_port%
+if $programname == 'mysqld_log' then ~

@@ -1,0 +1,18 @@
+#!/bin/sh -e
+
+echo "Installing community contributed Logstash plugins"
+
+(
+	cd /usr/local/nagioslogserver/logstash
+	rm -rf vendor/logstash/logstash-contrib-*
+	bin/plugin install contrib
+)
+
+# Do a simple sanity check to make sure some key files exist...
+for f in /usr/local/nagioslogserver/logstash/lib/logstash/filters/grep.rb ; do
+	if [ ! -f "$f" ]; then
+		echo "ERROR: Logstash install appears to have failed - exiting.  Missing file = $f"
+		exit 1
+	fi
+done
+

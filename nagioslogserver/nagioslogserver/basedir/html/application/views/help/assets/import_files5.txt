@@ -1,0 +1,1 @@
+python shipper.py -f '/var/log/httpd/access_log-*.gz' program:apache_access | nc %hostname% 2057

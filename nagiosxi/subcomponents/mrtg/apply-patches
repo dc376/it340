@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+pkgname="$1"
+
+# Apply our patches
+echo "Applying patches to MRTG..."
+
+
+# Fix protocol to accept more protocol variants
+patch "$pkgname/bin/cfgmaker" < patches/v3_privprotocol.patch

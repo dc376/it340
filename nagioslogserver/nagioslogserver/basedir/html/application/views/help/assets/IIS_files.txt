@@ -1,0 +1,7 @@
+# Watch your IIS log files
+<Input iis_log1>
+    Module   im_file
+    File     'C:\inetpub\logs\LogFiles\W3SVC2\u_ex*.log'
+    SavePos  TRUE
+    Exec     $Message = $raw_event;
+</Input>

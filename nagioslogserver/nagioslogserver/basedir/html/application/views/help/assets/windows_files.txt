@@ -1,0 +1,7 @@
+# Watch your own files
+<Input windowsfile>
+    Module   im_file
+    File     'C:\path\to\target\file'
+    SavePos  TRUE
+    Exec     $Message = $raw_event;
+</Input>

@@ -1,0 +1,3 @@
+curl -s -O %scheme%://%hostname%/nagioslogserver/scripts/setup-linux.sh
+sudo bash setup-linux.sh -s %hostname% -p %syslog_port% -f "/var/log/httpd/error_log" -t apache_error
+sudo bash setup-linux.sh -s %hostname% -p %syslog_port% -f "/var/log/httpd/access_log" -t apache_access

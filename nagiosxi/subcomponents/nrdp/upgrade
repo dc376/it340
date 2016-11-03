@@ -1,0 +1,32 @@
+#!/bin/sh -e
+
+. ../../xi-sys.cfg
+
+echo "Updating NRDP.."
+
+VERSION='1.3.1'
+installdir='/usr/local/nrdp'
+
+# Copy old config
+cp -f "$installdir/server/config.inc.php" "/tmp/config.inc.php"
+
+# Copy over new NRDP files
+cp -rf "nrdp-$VERSION"/* /usr/local/nrdp
+
+# Overwrite the copied config
+cp -f "/tmp/config.inc.php" "$installdir/server/config.inc.php"
+
+# Copy updated files
+cp -f mods/nagioscorepassivecheck.inc.php /usr/local/nrdp/server/plugins/nagioscorepassivecheck/nagioscorepassivecheck.inc.php
+cp -f mods/send_nrdp.php /usr/local/nrdp/clients/send_nrdp.php
+cp -f mods/send_nrdp.sh /usr/local/nrdp/clients/send_nrdp.sh
+chmod +x /usr/local/nrdp/clients/*
+
+# Set perms
+mkdir -p /usr/local/nrdp/win_clients/tmp
+chown -R "$nagiosuser:$nagiosgroup" $installdir
+chmod ug+rwx $installdir/server/config.inc.php
+chmod -R ug+rwx $installdir/win_clients/tmp
+
+# Set version in config
+sed -i "s/^\(\$cfg\['product_version'\]=\)'.*'$/\1'$VERSION'/" "$installdir/server/config.inc.php"

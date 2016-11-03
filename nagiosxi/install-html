@@ -1,0 +1,91 @@
+#!/bin/bash -e
+
+. ./xi-sys.cfg
+
+##########################################
+# COPY OVER NEW XI HTML FILES
+##########################################
+
+# Save old config.inc file
+if [ -f "$proddir/html/config.inc.php" ]; then
+	cp -f "$proddir/html/config.inc.php" "$proddir/html/config.inc.saved"
+fi
+
+# Save old loginsplash file
+if [ -f "$proddir/html/loginsplash.inc.php" ]; then
+	cp -f "$proddir/html/loginsplash.inc.php" "$proddir/html/loginsplash.inc.saved"
+fi
+
+# Copy over XI files
+echo "Copying over new XI directory..."
+cp -r ./nagiosxi/basedir/* "$proddir"
+
+# Restore original config.inc file, but save a copy of the new one
+if [ -f "$proddir/html/config.inc.saved" ]; then
+	cp -f "$proddir/html/config.inc.php" "$proddir/html/config.inc.dist"
+	cp -f "$proddir/html/config.inc.saved" "$proddir/html/config.inc.php"
+fi
+
+# Restore original loginsplash file, but save a copy of the new one
+if [ -f "$proddir/html/loginsplash.inc.saved" ]; then
+	cp -f "$proddir/html/loginsplash.inc.php" "$proddir/html/loginsplash.inc.dist"
+	cp -f "$proddir/html/loginsplash.inc.saved" "$proddir/html/loginsplash.inc.php"
+fi
+
+# Change ownership on directories and files
+eval "$chownbin" -R "$nagiosuser:$nagiosgroup" "$proddir"
+chmod g+s "$proddir/tmp"
+
+# Change perms to prevent others from reading/executing files
+chmod -R o-rwx "$proddir"/html/*
+chmod -R o-rwx "$proddir"/scripts/*
+chmod -R o-rwx "$proddir"/tools/*
+
+# Tmp directory has additional perms
+chmod -R ug+rwx  "$proddir/tmp"
+
+# Fix perms on zip files in tmp directory
+if ls "$proddir/tmp/*.zip" 1> /dev/null 2>&1; then
+    eval "$chownbin" "$nagiosuser:$nagiosgroup" "$proddir/tmp/*.zip"
+    chmod ug+w "$proddir"/tmp/*.zip
+fi
+
+# Create a default CCM file if it doesn't exist
+if [ ! -f "$proddir/etc/components/ccm_config.inc.php" ]; then
+	touch "$proddir/etc/components/ccm_config.inc.php"; 
+fi
+
+# Set permissions on component etc directory
+eval "$chownbin" -R "$apacheuser:$nagiosgroup" "$proddir/etc/components"
+find "$proddir/etc/components/" -type d -exec chmod 6775 {} \;
+
+# Set permissions on component var directory
+eval "$chownbin" -R  "$apacheuser:$nagiosgroup" "$proddir/var/components"
+find "$proddir/var/components/" -type d -exec chmod 6775 {} \;
+
+# Make sure config perms script/program are setuid root
+  ## - this needs to be here unless there is a way to setuid = root with SVN propset.  Breaks Apply Config - MG
+chown "root:$nagiosgroup" ${proddir}/scripts/reset_config_perms.sh
+chmod 4755 ${proddir}/scripts/reset_config_perms.sh
+
+# Fix perms on PNP graph template permissions
+chown "$nagiosuser:$nagiosgroup" /usr/local/nagios/share/pnp/templates
+chmod g+ws /usr/local/nagios/share/pnp/templates
+chown ".$nagiosgroup" /usr/local/nagios/share/pnp/templates/*.php
+chmod g+w /usr/local/nagios/share/pnp/templates/*.php
+
+# Fix perms on SNMP MIBS
+chown -R "root:$nagiosgroup" "$mibsdir"
+chmod g+ws "$mibsdir"
+chmod g+w $mibsdir/*.txt
+
+echo "Updating NagiosQL..."
+# Update NagiosQL 
+(
+	cd ./subcomponents/nagiosql
+	./upgrade
+)
+
+
+
+

@@ -1,0 +1,178 @@
+#!/bin/bash -e
+
+. ./xi-sys.cfg
+
+# Was previous step completed?
+if [ ! -f installed.subcomponents ]; then
+	echo "Subcomponents were not installed - run previous script" >&2
+	exit 1
+fi
+
+# Was this step already completed?
+if [ -f installed.nagiosxi ]; then
+	echo "Nagios XI base files already installed - skipping."
+	exit 0
+fi
+
+
+##########################################
+# CREATE MAIN PRODUCT DIRECTORIES
+##########################################
+
+echo "Installing Nagios XI base files..."
+
+echo "Creating product directory..."
+if [ ! -d "$proddir" ]; then
+	eval "$mkdirbin" -p "$proddir"
+fi
+
+# Copy over XI files
+cp -r ./nagiosxi/basedir/* "$proddir"
+
+# Init script
+cp ./nagiosxi/nagiosxi.init /etc/init.d/nagiosxi
+
+# Logrotate entry
+cp ./nagiosxi/logrotate.nagiosxi /etc/logrotate.d/nagiosxi
+sed -i "s|APACHEUSER|$apacheuser|;s|NAGIOSGROUP|$nagiosgroup|;s|PRODDIR|$proddir|" /etc/logrotate.d/nagiosxi
+
+# Change ownership on directories and files
+eval "$chownbin" -R "$nagiosuser:$nagiosgroup" "$proddir"
+
+# Set permissions on temp directory
+chown -R "$apacheuser:$nagiosgroup" "$proddir/tmp"
+chmod -R 6775 "$proddir/tmp"
+
+# Set permissions on component etc directory
+chown -R "$apacheuser:$nagiosgroup" "$proddir/etc/components"
+chmod 6775 $(find "$proddir/etc/components" -type d)
+
+# Set permissions on component var directory
+chown -R "$apacheuser:$nagiosgroup" "$proddir/var/components"
+chmod 6775 $(find "$proddir/var/components" -type d)
+
+# Add main Apache conf file
+cp nagiosxi/httpd.nagiosxi.conf "$httpdconfdir/nagiosxi.conf"
+
+# Modify ssl.conf for api
+if [ -f $httpdconfdir/ssl.conf ] && [ $(grep "nagiosxi/html/api" $httpdconfdir/ssl.conf | wc -l) -eq 0 ] && [ $(grep -c "</VirtualHost>" $httpdconfdir/ssl.conf) -eq 1 ]; then
+    # Generate a new ssl.conf with api mods
+    grep -v "</VirtualHost>" $httpdconfdir/ssl.conf > $httpdconfdir/ssl.conf.new
+    cat nagiosxi/httpd.api.conf >> $httpdconfdir/ssl.conf.new
+    echo "</VirtualHost>" >> $httpdconfdir/ssl.conf.new
+    mv -f  $httpdconfdir/ssl.conf.new  $httpdconfdir/ssl.conf
+fi
+
+# Create Apache authentication credential file
+# This is needed by Nagios Core  and PNP
+eval "$htpasswdbin" -c -b -s "$proddir/etc/htpasswd.users" "$nagioswebuser" "$nagioswebpwd"
+
+# Set permissions on htpasswd file
+chown -R "$nagiosuser:$apachegroup" "$proddir/etc/htpasswd.users"
+
+# Fix permissions on config files
+chown -R "$apacheuser:$nagiosgroup" /usr/local/nagios/etc/*.cfg
+#chown "$apacheuser:$nagiosgroup" /usr/local/nagios/etc/hosts/*.cfg
+#chown "$apacheuser:$nagiosgroup" /usr/local/nagios/etc/services/*.cfg
+
+# Set SNMP MIB directory perms
+chgrp -R "$nagiosgroup" "$mibsdir"
+chmod g+ws "$mibsdir"
+
+# Set PNP template directory perms
+chgrp -R "$nagiosgroup" /usr/local/nagios/share/pnp
+chmod g+ws /usr/local/nagios/share/pnp/templates
+chmod g+ws /usr/local/nagios/share/pnp/templates.dist
+
+# Restart Apache to apply perms
+if [ ! `command -v systemctl` ]; then
+    service $httpd restart
+else
+    systemctl restart $httpd
+fi
+
+# Install system config file
+cp xi-sys.cfg "$proddir/var/"
+cp xi-sys.cfg ./nagiosxi/basedir/var/
+
+# Initialize database
+if ! ./init-xidb; then
+	echo "ERROR: Nagios XI database was not setup properly - exiting." >&2
+	exit 1
+fi
+
+# Update databases (indexes, etc)
+(
+	cd "$proddir/scripts"
+	/usr/bin/php patch_ndoutils.php
+)
+
+# Install wizards - wait for 2012
+(
+	cd ./subcomponents/xiwizards
+	./install
+)
+
+# Install components - wait for 2012
+(
+	cd ./subcomponents/xicomponents
+	./install
+)
+
+# Install dashlets - wait for 2012
+(
+	cd ./subcomponents/xidashlets
+	./install
+)
+
+# Install phantomjs - for Highcharts export server
+if [ -z "$RPMINSTALL" ]; then
+    (
+        cd /tmp
+        arch=`uname -m`
+        
+        if [ "$arch" == "x86_64" ]; then
+            package="phantomjs-1.9.8-linux-x86_64"
+        else
+            package="phantomjs-1.9.8-linux-i686"
+        fi
+
+        echo "Installing PhantomJS..."
+
+        # Delete the old archive
+        rm -rf phantomjs*
+
+        # Download the file
+        wget http://assets.nagios.com/downloads/nagiosxi/packages/$package.tar
+        tar xf $package.tar
+        
+        # Move executables to proper location
+        cp $package/bin/phantomjs $proddir/html/includes/components/highcharts/exporting-server
+        chown -R "$nagiosuser:$nagiosgroup" $proddir/html/includes/components/highcharts/exporting-server
+        chmod 775 $proddir/html/includes/components/highcharts/exporting-server/temp
+        
+        # Clean up
+        rm -rf phantomjs*
+    )
+fi
+
+# Set SNMP MIB directory perms since new versions of net-snmp-libs changes this
+chown -R .$nagiosgroup "$mibsdir"
+chmod g+ws "$mibsdir"
+
+# Install the new LDAP/AD Component for XI 5
+$proddir/html/includes/components/ldap_ad_integration/install.sh
+
+# Install NRDS for XI 5
+$proddir/html/includes/components/nrdsconfigmanager/install.sh
+
+# Install SNMP Trap Sender for XI 5
+$proddir/html/includes/components/snmptrapsender/install.sh
+
+# Install Autodiscovery
+chmod 776 $proddir/html/includes/components/autodiscovery/jobs
+
+# Things are okay
+echo "Nagios XI base files installed OK"
+touch installed.nagiosxi
+

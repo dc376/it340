@@ -1,0 +1,84 @@
+#!/bin/sh
+
+. ../../xi-sys.cfg
+
+##BYPASS this script for now
+##exit 0
+
+
+echo "Installing Ajaxterm..."
+
+# Install RPM if necessary
+if [ ! -d /usr/share/ajaxterm/ ]; then
+	# checks if offline and uses rpm instead of yum
+	if [ -f $INSTALL_PATH/offline ]; then
+		rpm -ivh $INSTALL_PATH/packages/Ajaxterm-0.10-8.el5.noarch.rpm
+	else
+	yum localinstall --nogpgcheck -y $(readlink -e ../../packages/Ajaxterm-0.10-8.el5.noarch.rpm)
+	fi
+fi
+
+# Bail if error
+if [ ! -d /usr/share/ajaxterm/ ]; then
+	echo "Missing ajaxterm package. Ajaxterm install failed."
+	return
+fi
+
+# Copy files
+cp -vrf /usr/share/ajaxterm/ /usr/local/nagios/share
+
+# Change Apache SSL configuration...
+if [ ! -e $httpdconfdir/ssl.conf ]; then
+	echo "ERROR: ssl.conf not found - aborting Ajaxterm install."
+	return
+fi
+
+# Make a backup
+if [ ! -e $httpdconfdir/ssl.conf.nagiosxibackup ]; then
+	/bin/cp -f $httpdconfdir/ssl.conf $httpdconfdir/ssl.conf.nagiosxibackup
+fi
+
+# Configure Ajaxterm if necessary
+install1=`grep ajaxterm $httpdconfdir/*.conf | wc -l`
+install2=`grep ajaxterm $httpdconf | wc -l`
+echo "CHECK1: ${install1}"
+echo "CHECK2: ${install2}"
+if [ ${install1} -eq 0 ] && [ ${install2} -eq 0 ]; then
+
+    if [ -f $httpdconfdir/ssl.conf ];then
+        # Generate a new ssl.conf with proxy mods
+        grep -v "</VirtualHost>" $httpdconfdir/ssl.conf > $httpdconfdir/ssl.conf.new
+        cat sslmod.conf >> $httpdconfdir/ssl.conf.new
+        mv -f  $httpdconfdir/ssl.conf.new  $httpdconfdir/ssl.conf
+
+        # Restart Apache
+        if [ ! `command -v systemctl` ]; then
+            service ${httpd} restart
+        else
+            systemctl restart ${httpd}
+        fi
+        
+        # roll back config if we broke apache
+        if [ $? -eq 1 ]; then 
+            echo "Configuration error with Ajaxterm"
+            echo "Restoring previous configuration..."
+            cp $httpdconfdir/ssl.conf $httpdconfdir/ajaxterm.fail
+            #restore previous conf
+            mv -f $httpdconfdir/ssl.conf.nagiosxibackup $httpdconfdir/ssl.conf
+            service ${httpd} restart
+            echo "Ajaxterm installation ABORTED"
+        else
+            # Start Ajaxterm
+            chkconfig ajaxterm on
+            if [ ! `command -v systemctl` ]; then
+                service ajaxterm restart
+            else
+                systemctl restart ajaxterm
+            fi
+            echo "Ajaxterm installed"
+        fi
+    fi
+else
+	echo "It appears as though Ajaxterm is already configured, so we'll skip that step."
+fi
+

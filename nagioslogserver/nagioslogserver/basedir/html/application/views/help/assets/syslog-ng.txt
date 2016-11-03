@@ -1,0 +1,14 @@
+@include "scl.conf"
+source s_nagios {
+	system();
+	internal();
+};
+
+destination d_nagios { 
+    tcp("%hostname%" port(%syslog_port%)); 
+};
+
+log { 
+	source(s_nagios); 
+	destination(d_nagios); 
+};

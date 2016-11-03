@@ -1,0 +1,7 @@
+/*! nagios-kibana - v3.1.1-nagios3 - 2016-07-22
+ * https://www.nagios.com
+ * Copyright (c) 2016 Nagios Enterprises
+ Licensed: Apache License 
+*/
+
+define("panels/column/module",["angular","app","lodash","config"],function(a,b,c,d){"use strict";var e=a.module("kibana.panels.column",[]);b.useModule(e),e.controller("column",["$scope","$rootScope","$timeout",function(a,b,d){a.panelMeta={status:"Stable",description:glv("column_desc")};var e={panels:[]};c.defaults(a.panel,e),a.init=function(){a.reset_panel()},a.toggle_row=function(b){b.collapse=b.collapse?!1:!0,b.collapse||d(function(){a.send_render()})},a.send_render=function(){a.$broadcast("render")},a.add_panel=function(a,b){a.panels.push(b)},a.reset_panel=function(b){a.new_panel={loading:!1,error:!1,sizeable:!1,draggable:!1,removable:!1,span:10,height:"150px",editable:!0,type:b}}}]),e.directive("columnEdit",["$compile","$timeout",function(b,d){return{scope:{new_panel:"=panel",row:"=",config:"=",dashboards:"=",type:"=type"},link:function(e,f){e.dash_edited(),e.$on("render",function(){d(function(){e.panel=e.new_panel;var d="<div ng-include src=\"partial('panelgeneral')\"></div>";c.isUndefined(e.type)||""===e.type||(d=d+"<div ng-include src=\"'app/panels/"+e.type+"/editor.php'\"></div>"),f.html(b(a.element(d))(e))})})}}}]),e.filter("withoutColumn",function(){return function(){return c.without(d.panel_names,"column")}})});

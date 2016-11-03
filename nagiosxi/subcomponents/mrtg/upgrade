@@ -1,0 +1,35 @@
+#!/bin/sh -e
+
+pkgname="mrtg-2.17.4"
+
+echo "Upgrading MRTG..."
+
+# Delete the old archive
+rm -rf "$pkgname"
+
+# Extract archive
+tar -xzf "$pkgname.tar.gz"
+
+# Apply our patches
+./apply-patches "$pkgname"
+
+# Make and install 
+(
+	cd "./$pkgname"
+	./configure --prefix='/usr'
+	make all
+	make install
+)
+
+./post_install
+
+# Do a simple sanity check to make sure some key files exist...
+for f in /usr/bin/mrtg /etc/mrtg/mrtg.cfg ; do
+	if [ ! -f "$f" ]; then
+		echo "ERROR: MRTG upgrade appears to have failed - exiting.  Missing file = $f"
+		exit 1
+	fi
+done
+
+# Things are okay
+echo "MRTG upgraded OK"

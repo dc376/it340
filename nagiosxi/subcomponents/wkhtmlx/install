@@ -1,0 +1,46 @@
+#!/bin/sh -e
+
+pkgname="wkhtmltox-0.12.1-centos5"
+
+echo "Installing wkhtmltopdf and wkhtmltoimage..."
+
+# Check architecture and make a complete package name
+arch=$(arch)
+if [ "$arch" == "x86_64" ]; then
+	archtype="amd64"
+else
+	archtype="i386"
+fi
+
+pkgname="$pkgname-$archtype"
+
+# Delete old archive and folder
+rm -rf wkhtmlto*
+
+if [ -f $INSTALL_PATH/offline ]; then
+	#offline installer
+	mv "$INSTALL_PATH/packages/offlineinstall/Downloads/$pkgname.tar.gz" ./
+else
+	# Download a new package
+	assets="https://assets.nagios.com/downloads/nagiosxi/components/"
+	wget "$assets$pkgname.tar.gz"
+fi
+
+# Extract
+tar -xf "$pkgname.tar.gz"
+
+# Move into directory and copy
+(
+	cd wkhtmlto*
+	mv -f bin/wkhtmltopdf /usr/bin/wkhtmltopdf
+	mv -f bin/wkhtmltoimage /usr/bin/wkhtmltoimage
+)
+
+# Do a simple sanity check like all components and see if they exist
+if [ ! -f /usr/bin/wkhtmltopdf ]; then
+	echo "ERROR: wkhtmltox install appears to have failed!"
+	exit 1
+fi
+
+# It is okay!
+echo "wkhtmltox installed OK."

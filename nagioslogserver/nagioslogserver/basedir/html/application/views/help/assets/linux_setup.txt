@@ -1,0 +1,2 @@
+curl -s -O %scheme%://%hostname%/nagioslogserver/scripts/setup-linux.sh
+sudo bash setup-linux.sh -s %hostname% -p %syslog_port%

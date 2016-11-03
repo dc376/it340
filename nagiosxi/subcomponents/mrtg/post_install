@@ -1,0 +1,33 @@
+#!/bin/sh -e
+
+. ../../xi-sys.cfg
+
+echo "MRTG-POST"
+
+if [ -f /etc/mrtg/mrtg.cfg ]; then
+	cp -f /etc/mrtg/mrtg.cfg /etc/mrtg/mrtg.cfg.orig
+fi
+
+if [ ! -f /etc/cron.d/mrtg ]; then
+	echo "*/5 * * * * root LANG=C LC_ALL=C /usr/bin/mrtg /etc/mrtg/mrtg.cfg --lock-file /var/lib/mrtg/mrtg.lock --confcache-file /var/lib/mrtg/mrtg.ok" >/etc/cron.d/mrtg
+fi
+
+mkdir -p /var/lock/mrtg
+
+for d in /var/www/mrtg /etc/mrtg/conf.d /etc/mrtg/archive /var/lib/mrtg ; do
+    if [ ! -d "$d" ]; then
+        mkdir "$d"
+    fi
+done
+
+python separate_mrtg_cfgs
+
+./increase_open_file_limits.sh
+
+cp -r mods/cfg/mrtg.cfg /etc/mrtg/mrtg.cfg
+
+chown "$apacheuser:$nagiosgroup" /etc/mrtg -R
+chmod 775 /etc/mrtg -R
+
+chown "$apacheuser:$nagiosgroup" /var/lib/mrtg -R
+chmod 775 /var/lib/mrtg -R

@@ -1,0 +1,54 @@
+39c39
+< # Reproduce by: gnulib-tool --import --dir=. --lib=libgnu --source-base=gl --m4-base=gl/m4 --doc-base=doc --tests-base=tests --aux-dir=build-aux --no-conditional-dependencies --no-libtool --macro-prefix=gl --no-vc-files base64 crypto/sha1 dirname environ floorf fsusage getaddrinfo gethostname getloadavg getopt-gnu gettext mountlist regex setenv strsep timegm unsetenv vasprintf vsnprintf
+---
+> # Reproduce by: gnulib-tool --import --dir=. --lib=libgnu --source-base=gl --m4-base=gl/m4 --doc-base=doc --tests-base=tests --aux-dir=build-aux --no-conditional-dependencies --no-libtool --macro-prefix=gl --no-vc-files base64 crypto/sha1 dirname environ floorf fsusage getaddrinfo gethostname getloadavg getopt-gnu gettext idpriv-droptemp mountlist regex setenv strsep timegm unsetenv vasprintf vsnprintf
+89a90
+> 	$(top_srcdir)/gl/m4/idpriv.m4 \
+173,175c174,176
+< 	localcharset.$(OBJEXT) glthread/lock.$(OBJEXT) \
+< 	malloca.$(OBJEXT) math.$(OBJEXT) safe-read.$(OBJEXT) \
+< 	sockets.$(OBJEXT) sys_socket.$(OBJEXT) \
+---
+> 	idpriv-droptemp.$(OBJEXT) localcharset.$(OBJEXT) \
+> 	glthread/lock.$(OBJEXT) malloca.$(OBJEXT) math.$(OBJEXT) \
+> 	safe-read.$(OBJEXT) sockets.$(OBJEXT) sys_socket.$(OBJEXT) \
+1381,1391c1382,1392
+< 	$(top_srcdir)/build-aux/config.rpath inet_ntop.c intprops.h \
+< 	langinfo.in.h config.charset ref-add.sin ref-del.sin \
+< 	locale.in.h localeconv.c malloc.c malloc.c malloca.h \
+< 	malloca.valgrind math.in.h mbrtowc.c mbsinit.c mbtowc-impl.h \
+< 	mbtowc.c memchr.c memchr.valgrind mktime-internal.h mktime.c \
+< 	mktime-internal.h mktime.c mountlist.c mountlist.h \
+< 	msvc-inval.c msvc-inval.h msvc-nothrow.c msvc-nothrow.h \
+< 	netdb.in.h netinet_in.in.h nl_langinfo.c read.c regcomp.c \
+< 	regex.c regex.h regex_internal.c regex_internal.h regexec.c \
+< 	safe-read.h setenv.c \
+< 	$(top_srcdir)/build-aux/snippet/_Noreturn.h \
+---
+> 	$(top_srcdir)/build-aux/config.rpath idpriv.h inet_ntop.c \
+> 	intprops.h langinfo.in.h config.charset ref-add.sin \
+> 	ref-del.sin locale.in.h localeconv.c malloc.c malloc.c \
+> 	malloca.h malloca.valgrind math.in.h mbrtowc.c mbsinit.c \
+> 	mbtowc-impl.h mbtowc.c memchr.c memchr.valgrind \
+> 	mktime-internal.h mktime.c mktime-internal.h mktime.c \
+> 	mountlist.c mountlist.h msvc-inval.c msvc-inval.h \
+> 	msvc-nothrow.c msvc-nothrow.h netdb.in.h netinet_in.in.h \
+> 	nl_langinfo.c read.c regcomp.c regex.c regex.h \
+> 	regex_internal.c regex_internal.h regexec.c safe-read.h \
+> 	setenv.c $(top_srcdir)/build-aux/snippet/_Noreturn.h \
+1442,1446c1443,1447
+< 	fd-hook.c full-read.h full-read.c gettext.h localcharset.h \
+< 	localcharset.c glthread/lock.h glthread/lock.c malloca.c \
+< 	math.c safe-read.c size_max.h sockets.h sockets.c sys_socket.c \
+< 	glthread/threadlib.c unistd.c wctype-h.c xmalloc.c \
+< 	xalloc-die.c xsize.h xsize.c xstrndup.h xstrndup.c
+---
+> 	fd-hook.c full-read.h full-read.c gettext.h idpriv-droptemp.c \
+> 	localcharset.h localcharset.c glthread/lock.h glthread/lock.c \
+> 	malloca.c math.c safe-read.c size_max.h sockets.h sockets.c \
+> 	sys_socket.c glthread/threadlib.c unistd.c wctype-h.c \
+> 	xmalloc.c xalloc-die.c xsize.h xsize.c xstrndup.h xstrndup.c
+1562a1564
+> @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/idpriv-droptemp.Po@am__quote@
+3331a3334
+> 

@@ -1,0 +1,159 @@
+#!/bin/bash -e
+# This file boot straps NagiosXI install with all the yum packages.
+
+. ./xi-sys.cfg
+
+# Check whether we have sufficient privileges
+if [ $(id -u) -ne 0 ]; then
+    echo "This script needs to be run as root/superuser." >&2
+    exit 1
+fi
+
+# Was previous step completed?
+if [ ! -f installed.repos ]; then
+    echo "Repos were not properly prepared - run previous script" >&2
+    exit 1
+fi
+
+# Are prereqs already installed?
+if [ -f installed.prereqs ]; then
+    echo "Prereqs already installed - skipping..."
+    echo "Note: If you want to update the RPMs installed on this system, run your package manager's update command"
+    exit 0
+fi
+
+##########################################
+# INSTALL REQUIRED PACKAGES
+##########################################
+
+echo "Installing prerequisites..."
+if [ -f $INSTALL_PATH/offline ]; then
+    rpm -ivh $INSTALL_PATH/packages/php-pear-HTML-Template-IT-1.3.0-2.el5.noarch.rpm
+    rpm -ivh $INSTALL_PATH/nagiosxi-deps-$xiver-1.noarch.rpm
+else
+    if [ "$dist" = "suse11" ]; then
+        xiverrpm="nagiosxi-deps-suse11"
+        zypper install -y $(readlink -e ./packages/php-pear-HTML-Template-IT-1.3.0-2.el5.noarch.rpm) $(readlink -e ./$xiverrpm-$xiver-1.noarch.rpm)
+    elif [ "$distro" == "Ubuntu" ] || [ "$distro" == "Debian" ]; then
+
+        export DEBIAN_FRONTEND=noninteractive
+        export PERL_MM_USE_DEFAULT=1
+        
+        echo "Checking conflicting packages " 
+        if ! dpkg -s nagios nagios-nrpe nagios-nsca ndoutils ndoutils-mysql nrpe nsca && [ "$?" -ne 0 ]; then
+            echo "ERROR: Conflicting packages found." >&2
+            exit 1
+        fi
+
+        if [ "$dist" == "debian7" ]; then
+            extras="libgd2-xpm"
+        else
+            extras="libgd3"
+        fi
+        
+        if [ "$dist" == "ubuntu16" ]; then
+            extras="$extras php-ssh2"
+        else
+            extras="$extras libssh2-php"
+        fi
+
+        # Test install all required packages (for now)
+        if [ "$dist" == "ubuntu16" ]; then
+            apt-get install -y $extras automake autoconf bc dnsutils dstat libxml-parser-perl fping gcc libc6 libgd2-xpm-dev graphviz apache2 apache2-utils iptables mcrypt libmcrypt-dev make automake mailutils mrtg mysql-server libmysqlclient-dev snmp snmpd libsnmp-base libsnmp-dev snmp-mibs-downloader nmap ntp python-numpy slapd libpq5 libpq-dev libldap2-dev ldap-utils openssl ssh libexpat1-dev libssl-dev libcurl4-openssl-dev perl libmail-imapclient-perl libdbd-mysql-perl libnet-dns-perl libnet-snmp-perl php php-pdo libapache2-mod-php php-gd php-mcrypt php-mysql php-pear libssh2-1-dev php-pgsql php-snmp php-ldap php-curl libpq-dev python-pymssql python-lxml python-simplejson rrdtool librrds-perl python-rrdtool subversion sudo sysstat traceroute unzip wget xinetd zip tftp
+        else
+            apt-get install -y $extras automake autoconf bc dnsutils dstat libxml-parser-perl fping gcc libc6 libgd2-xpm-dev graphviz apache2 apache2-utils iptables mcrypt libmcrypt-dev make automake mailutils mrtg mysql-server libmysqlclient-dev snmp snmpd libsnmp-base libsnmp-dev snmp-mibs-downloader nmap ntp python-numpy slapd libpq5 libpq-dev libldap2-dev ldap-utils openssl ssh libexpat1-dev libssl-dev libcurl4-openssl-dev perl libmail-imapclient-perl libdbd-mysql-perl libnet-dns-perl libnet-snmp-perl php5 libapache2-mod-php5 php5-gd php5-mcrypt php5-mssql php5-mysql php-pear libssh2-1-dev php-html-template-it php5-pgsql php5-snmp php5-ldap php5-curl libpq-dev python-pymssql python-lxml python-simplejson rrdtool librrds-perl python-rrdtool subversion sudo sysstat traceroute unzip wget xinetd zip tftp
+        fi
+
+        # Install via cpan - apparently if already installed it causes an error
+        cpan install CPAN ||:
+        cpan install Error ||:
+        cpan install Params::Validate Math::Calc::Units Config::Tiny Crypt::Rijndael Crypt::SSLeay HTTP::Cookies HTTP::Request::Common Mail::POP3Client Net::SMTP Net::SMTP::TLS Test::More Time::HiRes Number::Format XML::Parser XML::Simple Class::Accessor ||:
+
+        # Set up apache to enable cgi-bin
+        a2enmod cgi
+
+    elif [ "$distro" == "CentOS" ] || [ "$distro" == "RedHatEnterpriseServer" ] || [ "$distro" == "OracleServer" ]; then
+        if [ $ver -eq 7 ]; then
+
+            # Install MySQL or MariaDB because why not make life difficult
+            # - practical reasoning is someone might need to use MySQL and/or mariadb doesn't even
+            #   exist on their installation due to reasons...
+
+            # Check if both MySQL and MariaDB are available in yum
+            av_mariadb=0
+            av_mysql=0
+
+            set +e
+            if yum info mysql-community-server &>/dev/null; then
+                av_mysql=1
+            fi
+            if yum info mariadb-server &>/dev/null; then
+                av_mariadb=1
+            fi
+            set -e
+
+            # Default to MariaDB unless it doesn't exist
+            mysql_res="1"
+            if [ $av_mariadb -eq 0 ]; then
+                mysql_res="2"
+            fi
+
+            # IF we need to ask which MySQL/MariaDB to use...
+            if [ "$INTERACTIVE" != False ] && [ $av_mysql -eq 1 ] && [ $av_mariadb -eq 1 ]; then
+                cat <<-EOF
+----------------------------------------
+
+It looks like MySQL and MariaDB are available on your system. Please pick one:
+1 - MariaDB (Default)
+2 - MySQL Community
+
+----------------------------------------
+EOF
+                read -p "Which DB server would you like to use? [1]: " mysql_res
+            fi
+
+            # Install the package and set the xivar if needed
+            if [ "$mysql_res" == "1" ] || [ "$mysql_res" == "" ]; then
+                yum install -y mariadb mariadb-server mariadb-devel
+                mysqld="mariadb"
+                ./xivar "mysqld" "$mysqld"
+            elif [ "$mysql_res" == "2" ]; then
+                yum install -y mysql mysql-community-server mysql-community-devel
+            else
+                echo "You must select one of the options, or nothing and use the default."
+                exit 1;
+            fi
+
+            xiverrpm="nagiosxi-deps-el7"
+            yum -y --nogpgcheck localinstall $(readlink -e ./packages/php-pear-HTML-Template-IT-1.3.0-2.el5.noarch.rpm) $(readlink -e ./$xiverrpm-$xiver-1.noarch.rpm)
+            yum install -y python-pymssql python-simplejson perl-Net-SNMP perl-Mail-IMAPClient
+        else
+            xiverrpm="nagiosxi-deps"
+            yum -y --nogpgcheck localinstall $(readlink -e ./packages/php-pear-HTML-Template-IT-1.3.0-2.el5.noarch.rpm) $(readlink -e ./$xiverrpm-$xiver-1.noarch.rpm)
+        fi
+    fi
+fi
+
+if [ "$distro" == "CentOS" ] || [ "$distro" == "RedHatEnterpriseServer" ] || [ "$distro" == "OracleServer" ]; then
+
+    if [ $ver -ne 7 ]; then
+        yum install -y "@Japanese Support" "@Chinese Support" "@Korean Support"
+
+        # add gcc install for rhel6 minimal installs
+        yum install -y gcc
+    fi
+
+    # Fix for php-mcrypt bug
+    if [ -f /etc/php.d/mcrypt.ini ]; then
+        echo "Fixing php-mcrypt bug..."
+        perl -p -i -e "s|module.so|mcrypt.so|g" /etc/php.d/mcrypt.ini
+    fi
+
+    if ! rpm -q $xiverrpm &>/dev/null; then
+        echo "ERROR: Prerequisites failed to install." >&2
+        exit 1
+    fi
+fi
+
+echo "Prerequisites installed OK"
+touch installed.prereqs

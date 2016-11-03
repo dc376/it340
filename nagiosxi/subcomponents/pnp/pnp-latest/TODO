@@ -1,0 +1,11 @@
+COMMON:
+-------
+Near Debug for Makefiles. make clean vs make distclean - they have some small problems
+
+PNP:
+----
+
+PNPSENDER:
+----------
+Create own buffered sending function for less network traffic.
+

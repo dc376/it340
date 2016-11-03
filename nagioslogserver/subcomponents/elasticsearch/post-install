@@ -1,0 +1,5 @@
+#!/bin/sh -e
+
+# install elasticsearch plugins
+mkdir -p /usr/local/nagioslogserver/elasticsearch/plugins
+cp -rf mods/plugins/* /usr/local/nagioslogserver/elasticsearch/plugins

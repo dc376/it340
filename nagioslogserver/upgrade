@@ -1,0 +1,188 @@
+#!/bin/sh -e
+
+cd $(dirname $(readlink -e "$0"))
+. ./libinstall.sh
+
+path='nagioslogserver'
+proddir="/var/www/html/nagioslogserver"
+backenddir="/usr/local/nagioslogserver"
+
+#source the old version number
+. "$proddir/lsversion"
+
+oldversion=$VERSION
+
+ELASTICSEARCH_UPDATED=0
+LOGSTASH_UPDATED=0
+KIBANA_UPDATED=0
+
+#### VERSION SPECIFIC UPDATES ##########
+
+
+if [ "$oldversion" -le 1 ]; then
+
+    if [ $ELASTICSEARCH_UPDATED -eq 0 ]; then
+        # Update elasticsearch to latest
+        (
+            cd ./subcomponents/elasticsearch
+            ./upgrade
+            ELASTICSEARCH_UPDATED=1
+        )
+    fi
+
+fi
+if [ "$oldversion" -le 2 ]; then
+
+    pip install setuptools --upgrade
+
+fi
+
+if [ "$oldversion" -le 100 ]; then
+
+    cp -r nagioslogserver/basedir/html/application/config/config.local.php "$proddir/application/config/config.local.php"
+
+fi
+
+if [ "$oldversion" -le 103 ]; then
+
+    sed -i 's/cluser_id/cluster_id/g' "$proddir/application/config/config.local.php"
+
+fi
+
+if [ "$oldversion" -le 104 ]; then
+    # Update MAX_LOCKED_MEMORY to unlimited so we can use the mlockall feature in ES
+    sed -i 's/^#MAX_LOCKED_MEMORY=$/MAX_LOCKED_MEMORY=unlimited/g' /etc/sysconfig/elasticsearch
+    # Force a 1g heap if not already changed
+    mem='$(expr $(free -m|awk '\''/^Mem:/{print $2}'\'') / 2 )m'
+    sed -i 's~^#ES_HEAP_SIZE=2g$~# Nagios Log Server Default to 0.5 physical Memory\nES_HEAP_SIZE='"$mem"'~g' /etc/sysconfig/elasticsearch
+
+fi
+
+if [ "$oldversion" -le 105 ]; then
+    yum install php-ldap -y
+    
+    # Update Elasticsearch
+    (
+            cd subcomponents/elasticsearch
+            ./upgrade
+    )
+
+    # Update Logstash
+    (
+            cd subcomponents/logstash
+            ./upgrade
+    )
+
+fi
+
+if [ "$oldversion" -le 140 ]; then
+
+    yum install openssl pyOpenSSL -y
+    
+    # Update elasticsearch curator to latest
+    pip install elasticsearch-curator==3.4.0 --upgrade
+
+    # Re-install apache config - first check if the readwrite strings have been previously added
+    apacheregex=$(sed -n '/RewriteEngine/{:start /\[L,QSA\]/!{N;b start};/.*/p}' "$httpdconfdir/nagioslogserver.conf")
+
+    if [ -z "$apacheregex" ]; then
+        echo >> "$httpdconfdir/nagioslogserver.conf" # newline
+        sed -n '11,15p' nagioslogserver/httpd.nagioslogserver.conf >> "$httpdconfdir/nagioslogserver.conf" # append readwrite conditions
+    fi
+fi
+
+# Latest version (1.4.2) patches for older versions
+if [ "$oldversion" -lt 142 ]; then
+
+    # Generate a random key value for encryption_key
+    key=$(openssl rand -hex 32)
+    sed -i "/\$config\['encryption_key'\]/c\$config['encryption_key'] = '$key';" $proddir/application/config/config.local.php
+
+fi
+
+##### ALL VERSION UPDATES ##############
+
+# Stop logstash (somehow this breaks it)
+start_logstash=false
+if [ $(ps -ef | grep -v grep | grep 'logstash' | grep ' agent' | wc -l) -gt 0 ]; then
+    start_logstash=true
+    /sbin/service logstash stop
+fi
+
+# Install sourceguardian and resetart Apache
+install_sourceguardian
+/sbin/service httpd restart
+
+# Restart logstash
+if $start_logstash ; then
+    /sbin/service logstash start 2> /var/log/logstash/logstash.log
+fi
+
+# ---------------------------------
+# Update sudoers if it needs it
+# ---------------------------------
+
+# Remove old sudoers entries
+grep -v NAGIOSLOGSERVER /etc/sudoers > /etc/sudoers.new
+mv -f /etc/sudoers.new /etc/sudoers
+
+# Remove TTY requirement
+sed -i 's/Defaults    requiretty/#Defaults    requiretty/g' /etc/sudoers
+
+# Add new sudoers entries
+cat nagioslogserver/nagioslogserver.sudoers >> /etc/sudoers
+
+# Set permissions
+chmod 440 /etc/sudoers
+
+# update cron
+install -m 644 nagioslogserver/nagioslogserver.cron.d /etc/cron.d/nagioslogserver 
+
+# Copy source directory to the system
+/bin/cp -f "$proddir/application/config/config.local.php" /tmp
+/bin/cp -rf nagioslogserver/basedir/html/* "$proddir"
+
+/bin/mv -f /tmp/config.local.php "$proddir/application/config/"
+
+# Copy backend directory scripts and replace permissions
+/bin/cp -rf nagioslogserver/basedir/scripts/* "$backenddir/scripts"
+chown -R nagios.nagios "$backenddir"
+chmod -R 0775 "$backenddir"
+chmod 0554 $backenddir/scripts/*
+
+# Update log rotation file
+cp -r ./nagioslogserver/logrotate.nagioslogserver /etc/logrotate.d/nagioslogserver
+
+# Update Kibana
+(
+    cd subcomponents/kibana
+    ./upgrade
+)
+
+# Set up permissions
+for dir in application/cache application/config application/logs application/dashboards www/media; do
+    mkdir -p "$proddir/$dir"
+    chgrp -R apache "$proddir/$dir"
+    chmod -R g+rwx  "$proddir/$dir"
+done
+
+# Run the upgrade script to import new system dashboards
+php $proddir/www/index.php install/upgrade
+
+# Apply elasticsearch template
+mkdir -p $backenddir/elasticsearch/config/templates
+cp -rf subcomponents/elasticsearch/mods/elasticsearch/config/templates/* $backenddir/elasticsearch/config/templates
+/etc/init.d/elasticsearch restart
+
+#### Complete Upgrade ####  
+echo
+echo "Nagios Log Server Upgrade Complete!"
+echo
+
+if [ -n "$path" ]; then
+    get_ip
+    
+    echo "You can access the Nagios Log Server web interface by visiting:"
+    echo "    http://$ip/$path/"
+    echo
+fi

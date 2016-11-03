@@ -1,0 +1,32 @@
+<script src="/nagios/pnp/include/js/prototype.js" type="text/javascript"></script>
+<script src="/nagios/pnp/include/js/overlib_mini.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+var newsAjax=null;
+function get_g(host,srv) {
+    url = "/nagios/pnp/ajax.php";
+    newsAjax = new Ajax.Request( url, 
+        { method: 'get', parameters: { "host": host, "srv": srv, "do": "popup" }, onComplete: show_g }
+    );
+}
+
+function show_g(response) {
+    overlib(response.responseText, CAPTION, 'PNP4Nagios Graphing', HAUTO, VAUTO);
+    newsAjax=null;
+}
+
+function clear_g() {
+    if( newsAjax!=null ) {
+        try { 
+        newsAjax.transport.abort(); 
+        newsAjax=null;
+        }
+        catch(e) {}
+    }
+    nd();
+}
+
+function reportError() {
+    window.alert('Ajax error');
+}
+</script>

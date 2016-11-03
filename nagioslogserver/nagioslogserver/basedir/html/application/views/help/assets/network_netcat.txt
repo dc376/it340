@@ -1,0 +1,1 @@
+echo netdevicetest | nc -u -w 1 %hostname% %syslog_port%

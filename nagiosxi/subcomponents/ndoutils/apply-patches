@@ -1,0 +1,10 @@
+#!/bin/bash -e
+
+pkgname="$1"
+
+# Apply our patches
+echo "Applying Nagios XI patches to NDOUtils..."
+
+# Fix ndo queue buffers
+patch  "$pkgname/src/ndo2db.c" < patches/ndo2db.c.diff
+
