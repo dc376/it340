@@ -1,0 +1,10 @@
+/var/log/murmur/murmur.log{
+  su root root
+  missingok
+  notifempty
+  compress
+  size 40k
+  daily
+  create 0600 murmur murmur
+ 
+}
